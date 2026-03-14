@@ -27,10 +27,10 @@ export const UserProfileRole = {
 export type CompanyTier = (typeof CompanyTier)[keyof typeof CompanyTier];
 
 export const CompanyTier = {
-  free: "free",
   independent: "independent",
   pro: "pro",
   franchise: "franchise",
+  enterprise: "enterprise",
 } as const;
 
 export interface Company {
@@ -70,10 +70,10 @@ export type SetupUserRequestTier =
   (typeof SetupUserRequestTier)[keyof typeof SetupUserRequestTier];
 
 export const SetupUserRequestTier = {
-  free: "free",
   independent: "independent",
   pro: "pro",
   franchise: "franchise",
+  enterprise: "enterprise",
 } as const;
 
 export interface SetupUserRequest {

@@ -31,7 +31,7 @@ export const GetMeResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       businessType: zod.string(),
-      tier: zod.enum(["free", "independent", "pro", "franchise"]),
+      tier: zod.enum(["independent", "pro", "franchise", "enterprise"]),
       phone: zod.string().nullish(),
       email: zod.string().nullish(),
       address: zod.string().nullish(),
@@ -61,7 +61,7 @@ export const SetupUserBody = zod.object({
   city: zod.string().optional(),
   state: zod.string().optional(),
   zip: zod.string().optional(),
-  tier: zod.enum(["free", "independent", "pro", "franchise"]).optional(),
+  tier: zod.enum(["independent", "pro", "franchise", "enterprise"]).optional(),
 });
 
 export const SetupUserResponse = zod.object({
@@ -78,7 +78,7 @@ export const SetupUserResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       businessType: zod.string(),
-      tier: zod.enum(["free", "independent", "pro", "franchise"]),
+      tier: zod.enum(["independent", "pro", "franchise", "enterprise"]),
       phone: zod.string().nullish(),
       email: zod.string().nullish(),
       address: zod.string().nullish(),

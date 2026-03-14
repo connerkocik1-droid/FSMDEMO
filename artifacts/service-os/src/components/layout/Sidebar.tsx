@@ -62,8 +62,8 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useMockAuth();
   
-  const userTier = user?.publicMetadata?.tier || "free";
-  const isPro = userTier === "pro" || userTier === "franchise";
+  const userTier = user?.publicMetadata?.tier || "independent";
+  const isPro = userTier === "pro" || userTier === "franchise" || userTier === "enterprise";
 
   const NavContent = () => (
     <>

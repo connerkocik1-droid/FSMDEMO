@@ -6,7 +6,7 @@ export const companiesTable = pgTable("companies", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   businessType: text("business_type").notNull(),
-  tier: text("tier").notNull().default("free"),
+  tier: text("tier").notNull().default("independent"),
   phone: text("phone"),
   email: text("email"),
   address: text("address"),

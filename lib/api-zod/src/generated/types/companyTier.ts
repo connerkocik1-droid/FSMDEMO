@@ -9,8 +9,8 @@
 export type CompanyTier = (typeof CompanyTier)[keyof typeof CompanyTier];
 
 export const CompanyTier = {
-  free: "free",
   independent: "independent",
   pro: "pro",
   franchise: "franchise",
+  enterprise: "enterprise",
 } as const;

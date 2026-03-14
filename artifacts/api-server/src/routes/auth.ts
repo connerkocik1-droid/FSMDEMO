@@ -43,12 +43,12 @@ router.post("/setup", requireAuth, async (req: AuthRequest, res) => {
     const { companyName, businessType, phone, address, city, state, zip, tier } = req.body;
 
     const tierMaxUsers: Record<string, number> = {
-      free: 3,
-      independent: 3,
+      independent: 6,
       pro: 25,
       franchise: 75,
+      enterprise: 200,
     };
-    const selectedTier = tier || "free";
+    const selectedTier = tier || "independent";
 
     const [company] = await db.insert(companiesTable).values({
       name: companyName,

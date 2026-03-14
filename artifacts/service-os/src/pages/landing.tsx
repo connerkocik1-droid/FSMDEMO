@@ -102,10 +102,10 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { name: "Free", price: "$0", users: "Up to 3 users", features: ["Core operations", "Basic scheduling", "Manual invoicing"] },
-              { name: "Independent", price: "$49", users: "Up to 3 users", features: ["Live GPS tracking", "Manual SMS", "Referral network access"] },
-              { name: "Pro", price: "$199", users: "Up to 25 technicians", features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"], popular: true },
-              { name: "Franchise", price: "Custom", users: "75+ operators", features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"] }
+              { name: "Independent", price: "$49", users: "Up to 6 users", features: ["Core operations", "Live GPS tracking", "Manual SMS", "Referral network access"] },
+              { name: "Pro", price: "$199", users: "Up to 25 users", features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"], popular: true },
+              { name: "Franchise", price: "$499", users: "Up to 75 users", features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"] },
+              { name: "Enterprise", price: "Custom", users: "75+ users", features: ["Everything in Franchise", "Custom integrations", "Dedicated success manager", "Custom SLA & pricing"] }
             ].map((plan, i) => (
               <div key={i} className={cn(
                 "relative bg-card p-8 rounded-3xl border flex flex-col",
