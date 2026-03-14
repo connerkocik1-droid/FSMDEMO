@@ -1,22 +1,45 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ServiceOS API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and user management
+  - name: companies
+    description: Company management
+  - name: users
+    description: User management
+  - name: leads
+    description: Lead and CRM management
+  - name: customers
+    description: Customer management
+  - name: jobs
+    description: Job scheduling and dispatch
+  - name: invoices
+    description: Invoice management
+  - name: reviews
+    description: Post-job ratings and reviews
+  - name: referrals
+    description: Referral network
+  - name: sms
+    description: SMS workflow
+  - name: demo
+    description: Demo request management
+  - name: analytics
+    description: Analytics and reporting
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +47,845 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Auth endpoints
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/setup:
+    post:
+      operationId: setupUser
+      tags: [auth]
+      summary: Complete user/company onboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetupUserRequest"
+      responses:
+        "200":
+          description: Setup complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # Users
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users in company
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [owner, admin, manager, operator]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: inviteUser
+      tags: [users]
+      summary: Invite a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteUserRequest"
+      responses:
+        "201":
+          description: User invited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Remove user from company
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Leads
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [leads]
+      summary: List leads
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, contacted, qualified, converted, lost]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of leads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadListResponse"
+    post:
+      operationId: createLead
+      tags: [leads]
+      summary: Create a lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeadRequest"
+      responses:
+        "201":
+          description: Created lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+
+  /leads/{leadId}:
+    get:
+      operationId: getLead
+      tags: [leads]
+      summary: Get lead
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+    put:
+      operationId: updateLead
+      tags: [leads]
+      summary: Update lead
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLeadRequest"
+      responses:
+        "200":
+          description: Updated lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+    delete:
+      operationId: deleteLead
+      tags: [leads]
+      summary: Delete lead
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Customers
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List customers
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerListResponse"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+    put:
+      operationId: updateCustomer
+      tags: [customers]
+      summary: Update customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerRequest"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  # Jobs
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List jobs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, in_progress, completed, cancelled]
+        - name: assignedTo
+          in: query
+          schema:
+            type: integer
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Create job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobRequest"
+      responses:
+        "201":
+          description: Created job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  /jobs/{jobId}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+    put:
+      operationId: updateJob
+      tags: [jobs]
+      summary: Update job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateJobRequest"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+    delete:
+      operationId: deleteJob
+      tags: [jobs]
+      summary: Delete job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /jobs/{jobId}/checkin:
+    post:
+      operationId: jobCheckIn
+      tags: [jobs]
+      summary: Check in to job (GPS)
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckInRequest"
+      responses:
+        "200":
+          description: Check-in recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  /jobs/{jobId}/complete:
+    post:
+      operationId: completeJob
+      tags: [jobs]
+      summary: Mark job complete
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteJobRequest"
+      responses:
+        "200":
+          description: Job completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  # Invoices
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List invoices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, sent, paid, overdue, cancelled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceListResponse"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Create invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/{invoiceId}:
+    get:
+      operationId: getInvoice
+      tags: [invoices]
+      summary: Get invoice
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+    put:
+      operationId: updateInvoice
+      tags: [invoices]
+      summary: Update invoice
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceRequest"
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  # Reviews
+  /reviews:
+    get:
+      operationId: listReviews
+      tags: [reviews]
+      summary: List reviews
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewListResponse"
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Submit a review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewRequest"
+      responses:
+        "201":
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  # SMS Events
+  /sms/events:
+    get:
+      operationId: listSmsEvents
+      tags: [sms]
+      summary: List SMS events
+      parameters:
+        - name: jobId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of SMS events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmsEventListResponse"
+    post:
+      operationId: sendSms
+      tags: [sms]
+      summary: Send SMS to customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendSmsRequest"
+      responses:
+        "201":
+          description: SMS sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmsEvent"
+
+  /sms/webhook:
+    post:
+      operationId: smsWebhook
+      tags: [sms]
+      summary: Twilio incoming SMS webhook
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                Body:
+                  type: string
+                From:
+                  type: string
+                To:
+                  type: string
+      responses:
+        "200":
+          description: Webhook received
+          content:
+            text/xml:
+              schema:
+                type: string
+
+  # Referrals
+  /referrals:
+    get:
+      operationId: listReferrals
+      tags: [referrals]
+      summary: List referrals
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of referrals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralListResponse"
+    post:
+      operationId: createReferral
+      tags: [referrals]
+      summary: Create referral
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReferralRequest"
+      responses:
+        "201":
+          description: Referral created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Referral"
+
+  /referral-groups:
+    get:
+      operationId: listReferralGroups
+      tags: [referrals]
+      summary: List referral groups
+      responses:
+        "200":
+          description: List of referral groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReferralGroup"
+    post:
+      operationId: createReferralGroup
+      tags: [referrals]
+      summary: Create referral group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReferralGroupRequest"
+      responses:
+        "201":
+          description: Referral group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralGroup"
+
+  # Demo requests
+  /demo:
+    post:
+      operationId: submitDemoRequest
+      tags: [demo]
+      summary: Submit a demo request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoRequestBody"
+      responses:
+        "201":
+          description: Demo request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoRequestResponse"
+
+  /demo/slots:
+    get:
+      operationId: getDemoSlots
+      tags: [demo]
+      summary: Get available demo time slots
+      responses:
+        "200":
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoSlotsResponse"
+
+  # Analytics
+  /analytics/overview:
+    get:
+      operationId: getAnalyticsOverview
+      tags: [analytics]
+      summary: Get analytics overview
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsOverview"
+
+  /analytics/revenue:
+    get:
+      operationId: getRevenueAnalytics
+      tags: [analytics]
+      summary: Get revenue analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Revenue analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueAnalytics"
+
+  /analytics/jobs:
+    get:
+      operationId: getJobAnalytics
+      tags: [analytics]
+      summary: Get job analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Job analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAnalytics"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +896,1261 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, manager, operator]
+        phone:
+          type: string
+          nullable: true
+        companyId:
+          type: integer
+          nullable: true
+        company:
+          $ref: "#/components/schemas/Company"
+          nullable: true
+        isOnboarded:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - email
+        - role
+        - isOnboarded
+        - createdAt
+
+    SetupUserRequest:
+      type: object
+      properties:
+        companyName:
+          type: string
+        businessType:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        tier:
+          type: string
+          enum: [free, independent, pro, franchise]
+      required:
+        - companyName
+        - businessType
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        businessType:
+          type: string
+        tier:
+          type: string
+          enum: [free, independent, pro, franchise]
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        zip:
+          type: string
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+        stripeCustomerId:
+          type: string
+          nullable: true
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        maxUsers:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - businessType
+        - tier
+        - maxUsers
+        - isActive
+        - createdAt
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [owner, admin, manager, operator]
+        phone:
+          type: string
+          nullable: true
+        companyId:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - email
+        - role
+        - companyId
+        - isActive
+        - createdAt
+
+    InviteUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, operator]
+        phone:
+          type: string
+      required:
+        - email
+        - role
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, operator]
+        phone:
+          type: string
+        isActive:
+          type: boolean
+
+    Lead:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        serviceInterest:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [new, contacted, qualified, converted, lost]
+        source:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        estimatedValue:
+          type: number
+          nullable: true
+        assignedToId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - firstName
+        - lastName
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateLeadRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        serviceInterest:
+          type: string
+        source:
+          type: string
+        notes:
+          type: string
+        estimatedValue:
+          type: number
+        assignedToId:
+          type: integer
+      required:
+        - firstName
+        - lastName
+
+    UpdateLeadRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        serviceInterest:
+          type: string
+        status:
+          type: string
+          enum: [new, contacted, qualified, converted, lost]
+        source:
+          type: string
+        notes:
+          type: string
+        estimatedValue:
+          type: number
+        assignedToId:
+          type: integer
+
+    LeadListResponse:
+      type: object
+      properties:
+        leads:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lead"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - leads
+        - total
+        - page
+        - limit
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        zip:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        totalJobsCount:
+          type: integer
+        totalRevenue:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - firstName
+        - lastName
+        - totalJobsCount
+        - totalRevenue
+        - createdAt
+        - updatedAt
+
+    CreateCustomerRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        notes:
+          type: string
+      required:
+        - firstName
+        - lastName
+
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        notes:
+          type: string
+
+    CustomerListResponse:
+      type: object
+      properties:
+        customers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - customers
+        - total
+        - page
+        - limit
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        customerId:
+          type: integer
+        customer:
+          $ref: "#/components/schemas/Customer"
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        serviceType:
+          type: string
+          nullable: true
+        scheduledStart:
+          type: string
+          format: date-time
+          nullable: true
+        scheduledEnd:
+          type: string
+          format: date-time
+          nullable: true
+        actualStart:
+          type: string
+          format: date-time
+          nullable: true
+        actualEnd:
+          type: string
+          format: date-time
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        zip:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        assignedToId:
+          type: integer
+          nullable: true
+        assignedUser:
+          $ref: "#/components/schemas/User"
+          nullable: true
+        estimatedRevenue:
+          type: number
+          nullable: true
+        actualRevenue:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        checkInLat:
+          type: number
+          nullable: true
+        checkInLng:
+          type: number
+          nullable: true
+        checkInTime:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - customerId
+        - title
+        - status
+        - priority
+        - createdAt
+        - updatedAt
+
+    CreateJobRequest:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        serviceType:
+          type: string
+        scheduledStart:
+          type: string
+          format: date-time
+        scheduledEnd:
+          type: string
+          format: date-time
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        assignedToId:
+          type: integer
+        estimatedRevenue:
+          type: number
+        notes:
+          type: string
+      required:
+        - customerId
+        - title
+
+    UpdateJobRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        serviceType:
+          type: string
+        scheduledStart:
+          type: string
+          format: date-time
+        scheduledEnd:
+          type: string
+          format: date-time
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        assignedToId:
+          type: integer
+        estimatedRevenue:
+          type: number
+        actualRevenue:
+          type: number
+        notes:
+          type: string
+
+    CheckInRequest:
+      type: object
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+      required:
+        - lat
+        - lng
+
+    CompleteJobRequest:
+      type: object
+      properties:
+        actualRevenue:
+          type: number
+        notes:
+          type: string
+
+    JobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - jobs
+        - total
+        - page
+        - limit
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        customerId:
+          type: integer
+        jobId:
+          type: integer
+          nullable: true
+        invoiceNumber:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        subtotal:
+          type: number
+        taxRate:
+          type: number
+        taxAmount:
+          type: number
+        total:
+          type: number
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        customer:
+          $ref: "#/components/schemas/Customer"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - customerId
+        - invoiceNumber
+        - status
+        - subtotal
+        - taxRate
+        - taxAmount
+        - total
+        - createdAt
+        - updatedAt
+
+    CreateInvoiceRequest:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        jobId:
+          type: integer
+        subtotal:
+          type: number
+        taxRate:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required:
+        - customerId
+        - subtotal
+
+    UpdateInvoiceRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        subtotal:
+          type: number
+        taxRate:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+
+    InvoiceListResponse:
+      type: object
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - invoices
+        - total
+        - page
+        - limit
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        customerId:
+          type: integer
+        jobId:
+          type: integer
+          nullable: true
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+        reviewSource:
+          type: string
+          nullable: true
+        isPublished:
+          type: boolean
+        customer:
+          $ref: "#/components/schemas/Customer"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - customerId
+        - rating
+        - isPublished
+        - createdAt
+
+    CreateReviewRequest:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        jobId:
+          type: integer
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        reviewSource:
+          type: string
+      required:
+        - customerId
+        - rating
+
+    ReviewListResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        averageRating:
+          type: number
+      required:
+        - reviews
+        - total
+        - page
+        - limit
+        - averageRating
+
+    SmsEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        jobId:
+          type: integer
+          nullable: true
+        customerId:
+          type: integer
+          nullable: true
+        direction:
+          type: string
+          enum: [inbound, outbound]
+        fromNumber:
+          type: string
+        toNumber:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+        aiGenerated:
+          type: boolean
+        twilioSid:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - direction
+        - fromNumber
+        - toNumber
+        - body
+        - status
+        - aiGenerated
+        - createdAt
+
+    SendSmsRequest:
+      type: object
+      properties:
+        toNumber:
+          type: string
+        body:
+          type: string
+        jobId:
+          type: integer
+        customerId:
+          type: integer
+        aiGenerate:
+          type: boolean
+        aiContext:
+          type: string
+      required:
+        - toNumber
+        - body
+
+    SmsEventListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmsEvent"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - events
+        - total
+        - page
+        - limit
+
+    Referral:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        referredByCompanyId:
+          type: integer
+          nullable: true
+        referredToCompanyId:
+          type: integer
+          nullable: true
+        customerName:
+          type: string
+        customerPhone:
+          type: string
+          nullable: true
+        customerEmail:
+          type: string
+          nullable: true
+        serviceNeeded:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, accepted, completed, declined]
+        rewardAmount:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - customerName
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateReferralRequest:
+      type: object
+      properties:
+        referredToCompanyId:
+          type: integer
+        customerName:
+          type: string
+        customerPhone:
+          type: string
+        customerEmail:
+          type: string
+        serviceNeeded:
+          type: string
+        notes:
+          type: string
+        rewardAmount:
+          type: number
+      required:
+        - customerName
+
+    ReferralListResponse:
+      type: object
+      properties:
+        referrals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Referral"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - referrals
+        - total
+        - page
+        - limit
+
+    ReferralGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        memberCount:
+          type: integer
+        region:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - memberCount
+        - createdAt
+
+    CreateReferralGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        region:
+          type: string
+      required:
+        - name
+
+    DemoRequestBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        companyName:
+          type: string
+        businessType:
+          type: string
+        teamSize:
+          type: string
+        message:
+          type: string
+        preferredSlot:
+          type: string
+          nullable: true
+        wantsRecorded:
+          type: boolean
+        wantsPrivate:
+          type: boolean
+      required:
+        - firstName
+        - lastName
+        - email
+        - companyName
+        - businessType
+
+    DemoRequestResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        confirmationCode:
+          type: string
+        scheduledSlot:
+          type: string
+          nullable: true
+        nextSteps:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - confirmationCode
+        - nextSteps
+        - createdAt
+
+    DemoSlot:
+      type: object
+      properties:
+        id:
+          type: string
+        datetime:
+          type: string
+          format: date-time
+        label:
+          type: string
+        available:
+          type: boolean
+      required:
+        - id
+        - datetime
+        - label
+        - available
+
+    DemoSlotsResponse:
+      type: object
+      properties:
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/DemoSlot"
+        calendarLink:
+          type: string
+      required:
+        - slots
+        - calendarLink
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        totalJobs:
+          type: integer
+        completedJobs:
+          type: integer
+        totalRevenue:
+          type: number
+        pendingRevenue:
+          type: number
+        totalCustomers:
+          type: integer
+        newLeads:
+          type: integer
+        avgJobValue:
+          type: number
+        avgRating:
+          type: number
+        jobCompletionRate:
+          type: number
+        revenueGrowth:
+          type: number
+      required:
+        - totalJobs
+        - completedJobs
+        - totalRevenue
+        - pendingRevenue
+        - totalCustomers
+        - newLeads
+        - avgJobValue
+        - avgRating
+        - jobCompletionRate
+        - revenueGrowth
+
+    RevenueAnalytics:
+      type: object
+      properties:
+        period:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              revenue:
+                type: number
+              invoiceCount:
+                type: integer
+            required:
+              - date
+              - revenue
+              - invoiceCount
+        total:
+          type: number
+        growth:
+          type: number
+      required:
+        - period
+        - data
+        - total
+        - growth
+
+    JobAnalytics:
+      type: object
+      properties:
+        period:
+          type: string
+        byStatus:
+          type: object
+          properties:
+            scheduled:
+              type: integer
+            in_progress:
+              type: integer
+            completed:
+              type: integer
+            cancelled:
+              type: integer
+          required:
+            - scheduled
+            - in_progress
+            - completed
+            - cancelled
+        byServiceType:
+          type: array
+          items:
+            type: object
+            properties:
+              serviceType:
+                type: string
+              count:
+                type: integer
+            required:
+              - serviceType
+              - count
+        avgCompletionTime:
+          type: number
+      required:
+        - period
+        - byStatus
+        - byServiceType
+        - avgCompletionTime
