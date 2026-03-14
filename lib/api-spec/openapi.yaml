@@ -963,7 +963,7 @@ components:
           type: string
         tier:
           type: string
-          enum: [independent, pro, franchise, enterprise]
+          enum: [free, independent, pro, franchise, enterprise]
       required:
         - companyName
         - businessType
@@ -979,7 +979,7 @@ components:
           type: string
         tier:
           type: string
-          enum: [independent, pro, franchise, enterprise]
+          enum: [free, independent, pro, franchise, enterprise]
         phone:
           type: string
           nullable: true

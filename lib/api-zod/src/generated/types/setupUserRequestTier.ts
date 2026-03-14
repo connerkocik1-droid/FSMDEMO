@@ -10,6 +10,7 @@ export type SetupUserRequestTier =
   (typeof SetupUserRequestTier)[keyof typeof SetupUserRequestTier];
 
 export const SetupUserRequestTier = {
+  free: "free",
   independent: "independent",
   pro: "pro",
   franchise: "franchise",

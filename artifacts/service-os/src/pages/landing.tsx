@@ -100,9 +100,10 @@ export default function Landing() {
             <p className="mt-4 text-lg text-muted-foreground">Choose the plan that fits your team size.</p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-5 gap-5">
             {[
-              { name: "Independent", price: "$49", users: "Up to 6 users", features: ["Core operations", "Live GPS tracking", "Manual SMS", "Referral network access"] },
+              { name: "Free", price: "$0", users: "Up to 3 users", features: ["Core operations", "Basic scheduling", "Manual invoicing"] },
+              { name: "Independent", price: "$49", users: "Up to 6 users", features: ["Live GPS tracking", "Manual SMS", "Referral network access"] },
               { name: "Pro", price: "$199", users: "Up to 25 users", features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"], popular: true },
               { name: "Franchise", price: "$499", users: "Up to 75 users", features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"] },
               { name: "Enterprise", price: "Custom", users: "75+ users", features: ["Everything in Franchise", "Custom integrations", "Dedicated success manager", "Custom SLA & pricing"] }

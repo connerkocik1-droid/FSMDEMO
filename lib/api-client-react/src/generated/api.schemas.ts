@@ -27,6 +27,7 @@ export const UserProfileRole = {
 export type CompanyTier = (typeof CompanyTier)[keyof typeof CompanyTier];
 
 export const CompanyTier = {
+  free: "free",
   independent: "independent",
   pro: "pro",
   franchise: "franchise",
@@ -70,6 +71,7 @@ export type SetupUserRequestTier =
   (typeof SetupUserRequestTier)[keyof typeof SetupUserRequestTier];
 
 export const SetupUserRequestTier = {
+  free: "free",
   independent: "independent",
   pro: "pro",
   franchise: "franchise",
