@@ -1,5 +1,5 @@
 import { useGetAnalyticsOverview, useListJobs } from "@workspace/api-client-react";
-import { Activity, DollarSign, Users, Briefcase, TrendingUp, Clock } from "lucide-react";
+import { Activity, DollarSign, Users, Briefcase, TrendingUp, Clock, Star, CheckCircle2, CheckCircle, ArrowUpRight, MapPin, Zap, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Dashboard() {

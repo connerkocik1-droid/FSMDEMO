@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useListSmsEvents, useSendSms } from "@workspace/api-client-react";
-import { Send, Bot, Phone, User, Info } from "lucide-react";
+import { Send, Bot, Phone, User, Info, Search, Plus, MoreHorizontal, CheckCircle2, AlertCircle, Clock, MessageSquare, Zap, ArrowLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 
 export default function SMSHub() {

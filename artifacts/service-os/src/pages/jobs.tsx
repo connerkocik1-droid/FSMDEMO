@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useListJobs, useCreateJob, useListCustomers } from "@workspace/api-client-react";
-import { Search, Plus, Calendar, MapPin, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Calendar, MapPin, MoreHorizontal, Clock, CheckCircle2, CheckCircle, AlertCircle, User, Users, Briefcase, Filter, X, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

@@ -1,5 +1,5 @@
 import { useListInvoices, useGetRevenueAnalytics } from "@workspace/api-client-react";
-import { DollarSign, ArrowUpRight, Plus, FileText, Download } from "lucide-react";
+import { DollarSign, ArrowUpRight, ArrowDownRight, Plus, FileText, Download, Search, Filter, CheckCircle2, AlertCircle, Clock, TrendingUp, TrendingDown, MoreHorizontal, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Financials() {

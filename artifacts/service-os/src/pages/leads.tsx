@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useListLeads, useCreateLead } from "@workspace/api-client-react";
-import { Search, Plus, MoreHorizontal, Phone, Mail, Filter } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Phone, Mail, Filter, CheckCircle2, CheckCircle, AlertCircle, Clock, X, ChevronRight, User, Users, ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -216,10 +216,3 @@ export default function Leads() {
   );
 }
 
-// Needed local icons for the file
-function Users(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-}
-function X(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-}
