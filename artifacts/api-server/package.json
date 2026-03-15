@@ -11,6 +11,8 @@
   "dependencies": {
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/integrations-openai-ai-server": "workspace:*",
+    "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
     "drizzle-orm": "catalog:",
@@ -19,10 +21,10 @@
     "jsonwebtoken": "^9.0.3",
     "marked": "^17.0.4",
     "nanoid": "^5.1.6",
-    "@workspace/integrations-openai-ai-server": "workspace:*",
     "stripe": "^20.4.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

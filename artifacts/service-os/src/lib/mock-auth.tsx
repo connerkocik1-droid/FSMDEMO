@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { Role, Tier, AddonType } from "./permissions";
 import { canAccess, hasPermission, isAtLeastRole, ADDON_PRICES } from "./permissions";
-import type { Feature, Permission } from "./permissions";
+import type { Feature, Permission, ActiveAddon } from "./permissions";
 
 export interface DemoProfile {
   id: string;
@@ -15,6 +15,28 @@ export interface DemoProfile {
   unlocked: string[];
   locked: string[];
   addons: AddonType[];
+}
+
+export interface RealAccountSession {
+  token: string;
+  user: {
+    id: number;
+    clerkId: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    role: string;
+    companyId: number | null;
+    isOnboarded: boolean;
+  };
+  company: {
+    id: number;
+    name: string;
+    businessType: string;
+    tier: string;
+    maxUsers: number;
+  } | null;
+  addons: { addonType: string; isActive: boolean }[];
 }
 
 export const DEMO_PROFILES: DemoProfile[] = [
@@ -95,8 +117,12 @@ interface AuthContextType {
   companyId: number | null;
   activeProfileId: string | null;
   isDemoSession: boolean;
+  isRealAccount: boolean;
+  realSession: RealAccountSession | null;
+  activeAddons: ActiveAddon[];
   signIn: () => void;
   signInAs: (profile: DemoProfile) => void;
+  signInWithRealAccount: (session: RealAccountSession) => void;
   signOut: () => void;
   setRole: (role: Role) => void;
   setTier: (tier: Tier) => void;
@@ -110,27 +136,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function loadRealSession(): RealAccountSession | null {
+  try {
+    const s = localStorage.getItem("real_account_session");
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
+  const [realSession, setRealSession] = useState<RealAccountSession | null>(loadRealSession);
+
   const [isSignedIn, setIsSignedIn] = useState(() => {
+    if (loadRealSession()) return true;
     try { return sessionStorage.getItem("mock_signed_in") === "true"; } catch { return false; }
   });
   const [role, setRole] = useState<Role>(() => {
+    const rs = loadRealSession();
+    if (rs) return (rs.user.role as Role) || "owner";
     try { return (sessionStorage.getItem("mock_role") as Role) || "owner"; } catch { return "owner"; }
   });
   const [addons, setAddons] = useState<AddonType[]>(() => {
     try { const s = sessionStorage.getItem("mock_addons"); return s ? JSON.parse(s) : []; } catch { return []; }
   });
   const [tier, setTier] = useState<Tier>(() => {
+    const rs = loadRealSession();
+    if (rs?.company) return (rs.company.tier as Tier) || "free";
     try { return (sessionStorage.getItem("mock_tier") as Tier) || "pro"; } catch { return "pro"; }
   });
   const [activeProfile, setActiveProfile] = useState<DemoProfile | null>(() => {
+    if (loadRealSession()) return null;
     try { const s = sessionStorage.getItem("mock_profile"); return s ? JSON.parse(s) : null; } catch { return null; }
   });
   const [isDemoSession, setIsDemoSession] = useState(() => {
+    if (loadRealSession()) return false;
     try { return sessionStorage.getItem("is_demo_session") === "true"; } catch { return false; }
   });
 
+  const isRealAccount = realSession !== null;
+
+  const activeAddons: ActiveAddon[] = realSession?.addons
+    ? realSession.addons.map(a => ({ addonType: a.addonType as AddonType, isActive: a.isActive }))
+    : [];
+
   useEffect(() => {
+    if (realSession) return;
     try {
       sessionStorage.setItem("mock_signed_in", String(isSignedIn));
       sessionStorage.setItem("mock_role", role);
@@ -140,7 +189,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
       if (activeProfile) sessionStorage.setItem("mock_profile", JSON.stringify(activeProfile));
       else sessionStorage.removeItem("mock_profile");
     } catch {}
-  }, [isSignedIn, role, tier, addons, activeProfile, isDemoSession]);
+  }, [isSignedIn, role, tier, addons, activeProfile, isDemoSession, realSession]);
 
   const signIn = useCallback(() => {
     setRole("owner");
@@ -158,10 +207,22 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     setIsSignedIn(true);
   }, []);
 
+  const signInWithRealAccount = useCallback((session: RealAccountSession) => {
+    try { localStorage.setItem("real_account_session", JSON.stringify(session)); } catch {}
+    setRealSession(session);
+    setRole((session.user.role as Role) || "owner");
+    setTier((session.company?.tier as Tier) || "free");
+    setActiveProfile(null);
+    setIsDemoSession(false);
+    setIsSignedIn(true);
+  }, []);
+
   const signOut = useCallback(() => {
     setIsSignedIn(false);
     setActiveProfile(null);
     setIsDemoSession(false);
+    setRealSession(null);
+    try { localStorage.removeItem("real_account_session"); } catch {}
     try { sessionStorage.clear(); } catch {}
   }, []);
 
@@ -169,18 +230,29 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     setIsSignedIn(false);
     setActiveProfile(null);
     setIsDemoSession(false);
+    setRealSession(null);
+    try { localStorage.removeItem("real_account_session"); } catch {}
     try { sessionStorage.clear(); } catch {}
     window.location.href = import.meta.env.BASE_URL || "/";
   }, []);
 
-  const currentUser: MockUser | null = isSignedIn ? {
-    id: activeProfile ? `user_${activeProfile.id}` : "user_mock_123",
-    fullName: activeProfile?.name ?? "Demo User",
-    primaryEmailAddress: { emailAddress: activeProfile?.email ?? "demo@serviceos.com" },
-    imageUrl: activeProfile?.avatar ?? "https://i.pravatar.cc/150?u=demo",
-    company: activeProfile?.company ?? "Demo Company",
-    publicMetadata: { role, tier, companyId: 1 },
-  } : null;
+  const currentUser: MockUser | null = isSignedIn ? (
+    realSession ? {
+      id: realSession.user.clerkId,
+      fullName: [realSession.user.firstName, realSession.user.lastName].filter(Boolean).join(" ") || "User",
+      primaryEmailAddress: { emailAddress: realSession.user.email },
+      imageUrl: `https://i.pravatar.cc/150?u=${realSession.user.email}`,
+      company: realSession.company?.name ?? "My Company",
+      publicMetadata: { role, tier, companyId: realSession.user.companyId ?? 1 },
+    } : {
+      id: activeProfile ? `user_${activeProfile.id}` : "user_mock_123",
+      fullName: activeProfile?.name ?? "Demo User",
+      primaryEmailAddress: { emailAddress: activeProfile?.email ?? "demo@serviceos.com" },
+      imageUrl: activeProfile?.avatar ?? "https://i.pravatar.cc/150?u=demo",
+      company: activeProfile?.company ?? "Demo Company",
+      publicMetadata: { role, tier, companyId: 1 },
+    }
+  ) : null;
 
   return (
     <AuthContext.Provider
@@ -191,18 +263,22 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         role,
         tier,
         addons,
-        companyId: isSignedIn ? 1 : null,
+        companyId: isSignedIn ? (realSession?.user.companyId ?? 1) : null,
         activeProfileId: activeProfile?.id ?? null,
         isDemoSession,
+        isRealAccount,
+        realSession,
+        activeAddons,
         signIn,
         signInAs,
+        signInWithRealAccount,
         signOut,
         setRole,
         setTier,
         setAddons,
         setDemoSession: setIsDemoSession,
         endDemoSession,
-        canAccessFeature: (feature: Feature) => canAccess(feature, tier, addons.map(a => ({ addonType: a, isActive: true }))),
+        canAccessFeature: (feature: Feature) => canAccess(feature, tier, isRealAccount ? activeAddons : addons.map(a => ({ addonType: a, isActive: true }))),
         hasPermission: (permission: Permission) => hasPermission(role, permission),
         isAtLeastRole: (requiredRole: Role) => isAtLeastRole(role, requiredRole),
       }}

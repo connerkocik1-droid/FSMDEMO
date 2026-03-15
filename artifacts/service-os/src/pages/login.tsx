@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { Eye, EyeOff, Key, Copy, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Key, Copy, ArrowRight, CheckCircle2, AlertCircle, Building2, User, Mail, Lock } from "lucide-react";
 import { useMockAuth, DEMO_PROFILES } from "@/lib/mock-auth";
+import type { RealAccountSession } from "@/lib/mock-auth";
 import { useDevAdminAuth } from "@/lib/dev-admin-auth";
+import type { AddonType } from "@/lib/permissions";
+import { ADDON_PRICES } from "@/lib/permissions";
 
-type Tab = "signin" | "demo";
+type Tab = "signin" | "create" | "demo";
 
 const TIER_CONFIG: Record<string, { label: string; price: string; users: string; color: string; token: string }> = {
   free: { label: "Free", price: "Free forever", users: "Up to 3 users", color: "bg-gray-100 text-gray-700 border-gray-200", token: "SERVICEOS-FREE" },
@@ -22,11 +25,16 @@ const DEMO_TOKENS: Record<string, string> = {
   "SERVICEOS-ENTERPRISE": "enterprise",
 };
 
+const BUSINESS_TYPES = [
+  "Lawn Care", "HVAC", "Plumbing", "Electrical", "Cleaning",
+  "Pest Control", "Landscaping", "Roofing", "Painting", "Other",
+];
+
 type DemoState = "entry" | "activated" | "requested";
 
 export default function LoginPage() {
   const [, navigate] = useLocation();
-  const { signInAs, setDemoSession } = useMockAuth();
+  const { signInAs, setDemoSession, signInWithRealAccount } = useMockAuth();
   const { login: devAdminLogin } = useDevAdminAuth();
   const [tab, setTab] = useState<Tab>("signin");
 
@@ -35,6 +43,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
+
+  const [regFirstName, setRegFirstName] = useState("");
+  const [regLastName, setRegLastName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regShowPassword, setRegShowPassword] = useState(false);
+  const [regCompanyName, setRegCompanyName] = useState("");
+  const [regBusinessType, setRegBusinessType] = useState("");
+  const [regTier, setRegTier] = useState("free");
+  const [regAddons, setRegAddons] = useState<AddonType[]>([]);
+  const [regIsLoading, setRegIsLoading] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
 
   const [demoState, setDemoState] = useState<DemoState>("entry");
   const [tokenInput, setTokenInput] = useState("");
@@ -49,19 +69,74 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await devAdminLogin(email, password);
-      if (result.success) {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        const data: RealAccountSession = await res.json();
+        signInWithRealAccount(data);
+        navigate("/dashboard");
+        return;
+      }
+
+      const devResult = await devAdminLogin(email, password);
+      if (devResult.success) {
         const ownerProfile = DEMO_PROFILES.find(p => p.role === "owner" && p.tier === "pro") || DEMO_PROFILES[0];
         signInAs(ownerProfile);
         navigate("/dashboard");
         return;
       }
+
       setSignInError("Invalid email or password.");
     } catch {
       setSignInError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError(null);
+    setRegIsLoading(true);
+
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: regFirstName,
+          lastName: regLastName,
+          email: regEmail,
+          password: regPassword,
+          companyName: regCompanyName,
+          businessType: regBusinessType,
+          tier: regTier,
+          addons: regAddons,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setRegError(data.message || "Registration failed.");
+        return;
+      }
+
+      const data: RealAccountSession = await res.json();
+      signInWithRealAccount(data);
+      navigate("/dashboard");
+    } catch {
+      setRegError("Something went wrong. Please try again.");
+    } finally {
+      setRegIsLoading(false);
+    }
+  };
+
+  const toggleAddon = (addon: AddonType) => {
+    setRegAddons(prev => prev.includes(addon) ? prev.filter(a => a !== addon) : [...prev, addon]);
   };
 
   const handleActivateToken = () => {
@@ -146,6 +221,16 @@ export default function LoginPage() {
               Sign In
             </button>
             <button
+              onClick={() => setTab("create")}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                tab === "create"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Create Account
+            </button>
+            <button
               onClick={() => setTab("demo")}
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
                 tab === "demo"
@@ -217,9 +302,203 @@ export default function LoginPage() {
 
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                  Start free
-                </Link>
+                <button onClick={() => setTab("create")} className="text-primary hover:text-primary/80 font-semibold transition-colors">
+                  Create one
+                </button>
+              </p>
+            </div>
+          )}
+
+          {tab === "create" && (
+            <div className="space-y-4">
+              <form onSubmit={handleRegister} className="space-y-4">
+                {regError && (
+                  <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    {regError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">First name</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={regFirstName}
+                        onChange={e => setRegFirstName(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-background border text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-10"
+                        placeholder="Sam"
+                      />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Last name</label>
+                    <input
+                      type="text"
+                      value={regLastName}
+                      onChange={e => setRegLastName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-background border text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      placeholder="Rivera"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Email</label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={regEmail}
+                      onChange={e => setRegEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-background border text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-10"
+                      placeholder="you@company.com"
+                    />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Password</label>
+                  <div className="relative">
+                    <input
+                      type={regShowPassword ? "text" : "password"}
+                      required
+                      minLength={6}
+                      value={regPassword}
+                      onChange={e => setRegPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-background border text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-10 pr-12"
+                      placeholder="Min. 6 characters"
+                    />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <button
+                      type="button"
+                      onClick={() => setRegShowPassword(!regShowPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {regShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Company name</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={regCompanyName}
+                        onChange={e => setRegCompanyName(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-background border text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-10"
+                        placeholder="Acme Services"
+                      />
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Business type</label>
+                    <select
+                      required
+                      value={regBusinessType}
+                      onChange={e => setRegBusinessType(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-background border text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    >
+                      <option value="">Select...</option>
+                      {BUSINESS_TYPES.map(bt => (
+                        <option key={bt} value={bt.toLowerCase().replace(/\s+/g, "_")}>{bt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Choose your plan</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(TIER_CONFIG).slice(0, 3).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setRegTier(key)}
+                        className={`p-2.5 rounded-xl border text-left space-y-1 transition-all ${
+                          regTier === key
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                            : "bg-card hover:border-primary/40"
+                        }`}
+                      >
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
+                        <p className="text-xs font-semibold text-foreground">{cfg.price}</p>
+                        <p className="text-[10px] text-muted-foreground">{cfg.users}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(TIER_CONFIG).slice(3).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setRegTier(key)}
+                        className={`p-2.5 rounded-xl border text-left space-y-1 transition-all ${
+                          regTier === key
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                            : "bg-card hover:border-primary/40"
+                        }`}
+                      >
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
+                        <p className="text-xs font-semibold text-foreground">{cfg.price}</p>
+                        <p className="text-[10px] text-muted-foreground">{cfg.users}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Add-ons <span className="text-muted-foreground font-normal">(optional)</span></label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.entries(ADDON_PRICES) as [AddonType, typeof ADDON_PRICES[AddonType]][]).map(([key, addon]) => (
+                      <label
+                        key={key}
+                        className={`flex items-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                          regAddons.includes(key)
+                            ? "border-primary bg-primary/5"
+                            : "bg-card hover:border-primary/40"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={regAddons.includes(key)}
+                          onChange={() => toggleAddon(key)}
+                          className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary/20"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground leading-tight">{addon.name}</p>
+                          <p className="text-[10px] text-muted-foreground">${addon.price}{addon.unit}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={regIsLoading}
+                  className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {regIsLoading ? "Creating account..." : "Create Account"}
+                </button>
+              </form>
+
+              <p className="text-center text-xs text-muted-foreground">
+                Demo environment — no payment required. Pick any tier and add-ons freely.
+              </p>
+              <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <button onClick={() => setTab("signin")} className="text-primary hover:text-primary/80 font-semibold transition-colors">
+                  Sign in
+                </button>
               </p>
             </div>
           )}

@@ -293,11 +293,19 @@ export async function customFetch<T = unknown>(
 
   if (!headers.has("x-clerk-user-id")) {
     try {
-      const profileStr = sessionStorage.getItem("mock_profile");
-      if (profileStr) {
-        const profile = JSON.parse(profileStr);
-        if (profile?.id) {
-          headers.set("x-clerk-user-id", `user_${profile.id}`);
+      const realSessionStr = localStorage.getItem("real_account_session");
+      if (realSessionStr) {
+        const realSession = JSON.parse(realSessionStr);
+        if (realSession?.user?.clerkId) {
+          headers.set("x-clerk-user-id", realSession.user.clerkId);
+        }
+      } else {
+        const profileStr = sessionStorage.getItem("mock_profile");
+        if (profileStr) {
+          const profile = JSON.parse(profileStr);
+          if (profile?.id) {
+            headers.set("x-clerk-user-id", `user_${profile.id}`);
+          }
         }
       }
     } catch {}
