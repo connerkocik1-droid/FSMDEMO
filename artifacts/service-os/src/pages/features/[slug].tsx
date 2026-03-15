@@ -54,7 +54,7 @@ export default function FeatureDetail() {
               Get a Demo <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/login"
+              href="/signup"
               className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 transition-all"
             >
               Start Free
@@ -136,7 +136,7 @@ export default function FeatureDetail() {
               Book a Demo <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/login"
+              href="/signup"
               className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 transition-all"
             >
               Start Free

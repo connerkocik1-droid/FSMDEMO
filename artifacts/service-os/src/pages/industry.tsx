@@ -103,7 +103,7 @@ function IndustryPage({ data }: { data: IndustryData }) {
               Get a Demo <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/login"
+              href="/signup"
               className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
             >
               Start Free
@@ -252,7 +252,7 @@ function IndustryPage({ data }: { data: IndustryData }) {
               Get a Demo <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/login"
+              href="/signup"
               className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
             >
               Start Free

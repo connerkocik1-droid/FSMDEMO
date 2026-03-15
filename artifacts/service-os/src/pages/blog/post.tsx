@@ -142,7 +142,7 @@ function CTABox() {
         <Link href="/demo" className="px-6 py-3 bg-background text-foreground font-semibold rounded-xl hover:bg-background/90 transition-all shadow-sm">
           Request a Demo
         </Link>
-        <Link href="/login" className="px-6 py-3 border border-primary-foreground/30 text-primary-foreground font-semibold rounded-xl hover:bg-primary-foreground/10 transition-all">
+        <Link href="/signup" className="px-6 py-3 border border-primary-foreground/30 text-primary-foreground font-semibold rounded-xl hover:bg-primary-foreground/10 transition-all">
           Start Free Trial
         </Link>
       </div>
