@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { demoRequestsTable, demoSlotsTable, demoBookingsTable, demoHostsTable } from "@workspace/db/schema";
+import { demoRequestsTable, demoSlotsTable, demoBookingsTable, demoHostsTable, demoAccessTokensTable } from "@workspace/db/schema";
 import { nanoid } from "nanoid";
+import { randomUUID } from "crypto";
 import { eq, sql, and, gte, count } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/auth";
 
@@ -135,7 +136,63 @@ router.post("/book", async (req, res) => {
         .where(eq(demoRequestsTable.id, requestId));
     }
 
-    return res.status(201).json(booking);
+    const demoCompanyId = parseInt(process.env.DEMO_COMPANY_ID || "1", 10);
+    const token = randomUUID();
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+    const [accessToken] = await db.insert(demoAccessTokensTable).values({
+      bookingId: booking.id,
+      token,
+      demoCompanyId,
+      expiresAt,
+    }).returning();
+
+    const baseUrl = process.env.APP_BASE_URL || "";
+    const demoAccessLink = `${baseUrl}/demo-access/${token}`;
+
+    return res.status(201).json({
+      ...booking,
+      demoAccessToken: token,
+      demoAccessLink,
+      demoAccessExpiresAt: expiresAt.toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.get("/access/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const tokens = await db.select().from(demoAccessTokensTable)
+      .where(eq(demoAccessTokensTable.token, token))
+      .limit(1);
+
+    if (tokens.length === 0) {
+      return res.status(404).json({ valid: false, reason: "invalid" });
+    }
+
+    const accessToken = tokens[0];
+
+    if (accessToken.isRevoked) {
+      return res.status(403).json({ valid: false, reason: "revoked" });
+    }
+
+    if (new Date() > accessToken.expiresAt) {
+      return res.status(410).json({ valid: false, reason: "expired" });
+    }
+
+    await db.update(demoAccessTokensTable)
+      .set({ usedAt: new Date() })
+      .where(eq(demoAccessTokensTable.id, accessToken.id));
+
+    return res.json({
+      valid: true,
+      demoCompanyId: accessToken.demoCompanyId,
+      bookingId: accessToken.bookingId,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "server_error" });
@@ -238,6 +295,39 @@ router.patch("/hosts/:hostId", requireAuth, requireRole("owner"), async (req: Au
       .returning();
 
     return res.json(updated);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.patch("/access/:tokenId/revoke", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const { tokenId } = req.params;
+
+    const [updated] = await db.update(demoAccessTokensTable)
+      .set({ isRevoked: true })
+      .where(eq(demoAccessTokensTable.id, parseInt(tokenId)))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    return res.json(updated);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.get("/access-tokens", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const tokens = await db.select().from(demoAccessTokensTable)
+      .orderBy(sql`${demoAccessTokensTable.createdAt} DESC`)
+      .limit(20);
+
+    return res.json(tokens);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "server_error" });

@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
   userRole?: string;
   companyId?: number;
   companyTier?: string;
+  isDemoSession?: boolean;
 }
 
 type Tier = "free" | "independent" | "pro" | "franchise" | "enterprise";

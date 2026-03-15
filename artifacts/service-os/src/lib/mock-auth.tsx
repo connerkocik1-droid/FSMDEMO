@@ -112,11 +112,14 @@ interface AuthContextType {
   tier: Tier;
   companyId: number | null;
   activeProfileId: string | null;
+  isDemoSession: boolean;
   signIn: () => void;
   signInAs: (profile: DemoProfile) => void;
   signOut: () => void;
   setRole: (role: Role) => void;
   setTier: (tier: Tier) => void;
+  setDemoSession: (value: boolean) => void;
+  endDemoSession: () => void;
   canAccessFeature: (feature: Feature) => boolean;
   hasPermission: (permission: Permission) => boolean;
   isAtLeastRole: (requiredRole: Role) => boolean;
@@ -137,16 +140,20 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [activeProfile, setActiveProfile] = useState<DemoProfile | null>(() => {
     try { const s = sessionStorage.getItem("mock_profile"); return s ? JSON.parse(s) : null; } catch { return null; }
   });
+  const [isDemoSession, setIsDemoSession] = useState(() => {
+    try { return sessionStorage.getItem("is_demo_session") === "true"; } catch { return false; }
+  });
 
   useEffect(() => {
     try {
       sessionStorage.setItem("mock_signed_in", String(isSignedIn));
       sessionStorage.setItem("mock_role", role);
       sessionStorage.setItem("mock_tier", tier);
+      sessionStorage.setItem("is_demo_session", String(isDemoSession));
       if (activeProfile) sessionStorage.setItem("mock_profile", JSON.stringify(activeProfile));
       else sessionStorage.removeItem("mock_profile");
     } catch {}
-  }, [isSignedIn, role, tier, activeProfile]);
+  }, [isSignedIn, role, tier, activeProfile, isDemoSession]);
 
   const signIn = useCallback(() => {
     setRole("owner");
@@ -165,7 +172,16 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(() => {
     setIsSignedIn(false);
     setActiveProfile(null);
+    setIsDemoSession(false);
     try { sessionStorage.clear(); } catch {}
+  }, []);
+
+  const endDemoSession = useCallback(() => {
+    setIsSignedIn(false);
+    setActiveProfile(null);
+    setIsDemoSession(false);
+    try { sessionStorage.clear(); } catch {}
+    window.location.href = import.meta.env.BASE_URL || "/";
   }, []);
 
   const currentUser: MockUser | null = isSignedIn ? {
@@ -187,11 +203,14 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         tier,
         companyId: isSignedIn ? 1 : null,
         activeProfileId: activeProfile?.id ?? null,
+        isDemoSession,
         signIn,
         signInAs,
         signOut,
         setRole,
         setTier,
+        setDemoSession: setIsDemoSession,
+        endDemoSession,
         canAccessFeature: (feature: Feature) => canAccess(feature, tier),
         hasPermission: (permission: Permission) => hasPermission(role, permission),
         isAtLeastRole: (requiredRole: Role) => isAtLeastRole(role, requiredRole),

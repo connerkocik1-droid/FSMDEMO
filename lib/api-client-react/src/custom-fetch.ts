@@ -285,6 +285,12 @@ export async function customFetch<T = unknown>(
 
   const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
 
+  try {
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("is_demo_session") === "true") {
+      headers.set("x-demo-session", "true");
+    }
+  } catch {}
+
   if (
     typeof init.body === "string" &&
     !headers.has("content-type") &&

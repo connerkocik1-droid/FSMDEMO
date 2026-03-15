@@ -7,8 +7,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SEO } from "@/components/SEO";
 
 import Landing from "@/pages/landing";
-import DemoLogin from "@/pages/login";
+import LoginPage from "@/pages/login";
 import Demo from "@/pages/demo";
+import DemoAccess from "@/pages/demo-access";
 import Dashboard from "@/pages/dashboard";
 import Leads from "@/pages/leads";
 import Customers from "@/pages/customers";
@@ -56,7 +57,7 @@ function AppRouter() {
       
       <Route path="/login">
         <MockSignedOut>
-          <DemoLogin />
+          <LoginPage />
         </MockSignedOut>
         <MockSignedIn>
           <Redirect to="/dashboard" />
@@ -64,6 +65,7 @@ function AppRouter() {
       </Route>
 
       <Route path="/demo" component={Demo} />
+      <Route path="/demo-access/:token" component={DemoAccess} />
       <Route path="/review/:token" component={PublicReview} />
       
       <Route path="/:rest*">

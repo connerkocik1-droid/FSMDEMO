@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import seoRouter from "./routes/seo.js";
+import { demoGuard } from "./middlewares/demo-guard";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +14,7 @@ const app: Express = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(demoGuard);
 
 let redirects: { from: string; to: string }[] = [];
 try {
@@ -28,8 +30,7 @@ for (const redirect of redirects) {
   });
 }
 
-app.use(seoRouter);
-
 app.use("/api", router);
+app.use(seoRouter);
 
 export default app;

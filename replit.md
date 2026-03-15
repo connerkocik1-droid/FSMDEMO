@@ -101,6 +101,7 @@ artifacts-monorepo/
 - **demo_slots** — Demo slot configuration (available days, time blocks, limits)
 - **demo_bookings** — Demo booking records
 - **demo_hosts** — Demo host roster
+- **demo_access_tokens** — Token-gated demo access (UUID token, 72h expiry, revocable)
 - **gps_logs** — GPS tracking data
 - **email_log** — Email delivery tracking
 - **lead_notes** — Lead activity notes
@@ -129,6 +130,9 @@ All routes under `/api/*`:
 - `GET/POST /api/referrals`
 - `GET/POST /api/referral-groups`
 - `GET/POST /api/demo`, `GET /api/demo/slots`, `POST /api/demo/book`
+- `GET /api/demo/access/:token` — Validate demo access token
+- `PATCH /api/demo/access/:tokenId/revoke` — Revoke demo access token (Owner only)
+- `GET /api/demo/access-tokens` — List demo access tokens (Owner only)
 - `GET/PATCH /api/demo/settings` — Demo scheduler admin (Owner only)
 - `POST /api/demo/hosts`, `PATCH /api/demo/hosts/:hostId`
 - `GET /api/emails` — Email log (Admin+)

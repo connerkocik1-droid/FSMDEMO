@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Clock, Users, Plus, X, Save, BarChart3, CheckCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Users, Plus, X, Save, BarChart3, CheckCircle, AlertCircle, Key, Ban } from "lucide-react";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -43,6 +43,7 @@ export default function DemoScheduler() {
     assignmentMethod: "round-robin",
   });
   const [hosts, setHosts] = useState<Host[]>([]);
+  const [accessTokens, setAccessTokens] = useState<any[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalRequests: 0, confirmedRequests: 0, confirmationRate: 0 });
   const [newBlockDate, setNewBlockDate] = useState("");
@@ -73,6 +74,15 @@ export default function DemoScheduler() {
         if (data.hosts) setHosts(data.hosts);
         if (data.upcomingBookings) setUpcomingBookings(data.upcomingBookings);
         if (data.stats) setStats(data.stats);
+      })
+      .catch(console.error);
+
+    fetch(`${import.meta.env.BASE_URL}api/demo/access-tokens`, {
+      headers: { "x-clerk-user-id": "user_mock_123" },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setAccessTokens(data);
       })
       .catch(console.error);
   }, []);
@@ -133,6 +143,18 @@ export default function DemoScheduler() {
       ...prev,
       blockedDates: prev.blockedDates.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleRevokeToken = async (tokenId: number) => {
+    try {
+      await fetch(`${import.meta.env.BASE_URL}api/demo/access/${tokenId}/revoke`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-clerk-user-id": "user_mock_123" },
+      });
+      setAccessTokens(prev => prev.map(t => t.id === tokenId ? { ...t, isRevoked: true } : t));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -346,6 +368,61 @@ export default function DemoScheduler() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border p-6">
+        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Key className="w-4 h-4 text-primary" /> Demo Access Tokens
+        </h3>
+        {accessTokens.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">No demo access tokens generated yet. Tokens are created automatically when a demo is booked.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Token</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Expires</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accessTokens.map((token: any) => {
+                  const isExpired = new Date(token.expiresAt) < new Date();
+                  const status = token.isRevoked ? "revoked" : isExpired ? "expired" : token.usedAt ? "used" : "active";
+                  return (
+                    <tr key={token.id} className="border-b last:border-0">
+                      <td className="py-3 px-4 font-mono text-xs">{token.token.slice(0, 8)}...</td>
+                      <td className="py-3 px-4">{new Date(token.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">{new Date(token.expiresAt).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          status === "active" ? "bg-green-100 text-green-700" :
+                          status === "used" ? "bg-blue-100 text-blue-700" :
+                          status === "expired" ? "bg-amber-100 text-amber-700" :
+                          "bg-red-100 text-red-700"
+                        }`}>{status}</span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {!token.isRevoked && !isExpired && (
+                          <button
+                            onClick={() => handleRevokeToken(token.id)}
+                            className="inline-flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 font-medium transition-colors"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            Revoke
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-2xl border p-6">
