@@ -41,14 +41,24 @@ interface NavItem {
   minRole?: "owner" | "admin" | "manager" | "operator";
 }
 
-const navGroups: { label: string; items: NavItem[] }[] = [
+interface NavItemWithAliases extends NavItem {
+  operatorName?: string;
+}
+
+interface NavGroupDef {
+  label: string;
+  operatorLabel?: string;
+  items: NavItemWithAliases[];
+}
+
+const navGroups: NavGroupDef[] = [
   {
     label: "Operations",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Jobs & Dispatch", href: "/jobs", icon: Briefcase },
+      { name: "Jobs & Dispatch", operatorName: "My Jobs", href: "/jobs", icon: Briefcase },
       { name: "Dispatch Board", href: "/dispatch", icon: MapPin, minRole: "admin" },
-      { name: "Live GPS", href: "/gps", icon: MapPin, feature: "gps_tracking" },
+      { name: "Live GPS", href: "/gps", icon: MapPin, feature: "gps_tracking", minRole: "admin" },
     ]
   },
   {
@@ -61,16 +71,26 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Communication",
     items: [
-      { name: "SMS Hub", href: "/sms", icon: MessageSquare, feature: "manual_sms" },
-      { name: "Reviews", href: "/reviews", icon: Star, feature: "referral_network" },
-      { name: "Referrals", href: "/referrals", icon: Share2, feature: "referral_network" },
+      { name: "SMS Hub", operatorName: "Chat", href: "/sms", icon: MessageSquare, feature: "manual_sms" },
+      { name: "Reviews", href: "/reviews", icon: Star, feature: "referral_network", minRole: "admin" },
+      { name: "Referrals", href: "/referrals", icon: Share2, feature: "referral_network", minRole: "admin" },
     ]
   },
   {
     label: "Reports",
     items: [
-      { name: "Financials", href: "/financials", icon: WalletCards, feature: "basic_financials" },
-      { name: "Analytics", href: "/analytics", icon: LineChart, feature: "full_analytics" },
+      { name: "Financials", operatorName: "My Earnings", href: "/financials", icon: WalletCards, feature: "basic_financials" },
+      { name: "Analytics", href: "/analytics", icon: LineChart, feature: "full_analytics", minRole: "admin" },
+    ]
+  },
+  {
+    label: "Account",
+    items: [
+      { name: "My Profile", href: "/settings/profile", icon: UserCircle },
+      { name: "Company", href: "/settings/company", icon: Building2, minRole: "admin" },
+      { name: "Team", href: "/settings/users", icon: Users, minRole: "admin" },
+      { name: "Billing", href: "/settings/billing", icon: CreditCard, minRole: "owner" },
+      { name: "Audit Log", href: "/settings/audit", icon: ClipboardList, minRole: "admin" },
     ]
   },
   {
@@ -97,7 +117,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
 export function Sidebar() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const { canAccessFeature, isAtLeastRole } = useMockAuth();
+  const { canAccessFeature, isAtLeastRole, role } = useMockAuth();
+  const isOperator = !isAtLeastRole("admin");
 
   const NavContent = () => (
     <>
@@ -125,6 +146,7 @@ export function Sidebar() {
                 {visibleItems.map((item) => {
                   const isActive = location === item.href || location.startsWith(`${item.href}/`);
                   const isLocked = item.feature ? !canAccessFeature(item.feature) : false;
+                  const displayName = isOperator && (item as NavItemWithAliases).operatorName ? (item as NavItemWithAliases).operatorName : item.name;
                   
                   return (
                     <Link
@@ -141,7 +163,7 @@ export function Sidebar() {
                     >
                       <div className="flex items-center gap-3">
                         <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-sidebar-foreground/60")} />
-                        {item.name}
+                        {displayName}
                       </div>
                       {isLocked && <Lock className="w-4 h-4 text-sidebar-foreground/40" />}
                     </Link>

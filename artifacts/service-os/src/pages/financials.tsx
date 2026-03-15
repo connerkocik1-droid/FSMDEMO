@@ -1,9 +1,125 @@
 import { useState } from "react";
-import { useListInvoices, useGetRevenueAnalytics } from "@workspace/api-client-react";
-import { DollarSign, ArrowUpRight, Plus, FileText, Download, Search, CheckCircle2, Clock, MoreHorizontal, CreditCard, Send, Edit } from "lucide-react";
+import { useListInvoices, useGetRevenueAnalytics, useListJobs } from "@workspace/api-client-react";
+import { DollarSign, ArrowUpRight, Plus, FileText, Download, Search, CheckCircle2, Clock, MoreHorizontal, CreditCard, Send, Edit, Briefcase, TrendingUp, Wallet } from "lucide-react";
 import { format } from "date-fns";
+import { useMockAuth } from "@/lib/mock-auth";
 
-export default function Financials() {
+function OperatorEarningsView() {
+  const { user } = useMockAuth();
+  const { data: jobsData, isLoading } = useListJobs();
+
+  const userIdHash = (user?.id || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const myCompletedJobs = (jobsData?.jobs.filter(j => j.status === "completed") || [])
+    .filter(j => j.id % 3 === userIdHash % 3);
+
+  const completedJobs = myCompletedJobs;
+  const totalEarnings = completedJobs.reduce((sum, j) => sum + Number(j.estimatedRevenue || 0), 0);
+  const jobsThisMonth = completedJobs.length;
+
+  const mockPayouts = [
+    { period: "Mar 1 - Mar 15, 2026", amount: Math.round(totalEarnings * 0.6), status: "paid" },
+    { period: "Feb 16 - Feb 28, 2026", amount: Math.round(totalEarnings * 0.4), status: "paid" },
+    { period: "Feb 1 - Feb 15, 2026", amount: Math.round(totalEarnings * 0.3), status: "paid" },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-display font-bold text-foreground">My Earnings</h2>
+        <p className="text-muted-foreground mt-1">Your personal earnings from completed jobs.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-green-600 to-green-500 p-6 rounded-3xl text-white shadow-xl shadow-green-500/20 relative overflow-hidden">
+          <div className="relative z-10">
+            <h3 className="text-white/80 font-medium">Total Earnings</h3>
+            <p className="text-4xl font-display font-bold mt-2">${totalEarnings.toLocaleString()}</p>
+            <div className="mt-6 flex items-center gap-2 text-sm font-semibold bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-md">
+              <Briefcase className="w-4 h-4" /> {jobsThisMonth} completed jobs
+            </div>
+          </div>
+          <DollarSign className="absolute -bottom-8 -right-8 w-48 h-48 text-white/10" />
+        </div>
+        <div className="bg-card p-6 rounded-3xl border shadow-sm flex flex-col justify-center">
+          <h3 className="text-muted-foreground font-medium">Jobs Completed</h3>
+          <p className="text-3xl font-display font-bold text-foreground mt-2">{jobsThisMonth}</p>
+          <p className="text-sm font-semibold text-green-500 mt-2">All time</p>
+        </div>
+        <div className="bg-card p-6 rounded-3xl border shadow-sm flex flex-col justify-center">
+          <h3 className="text-muted-foreground font-medium">Avg per Job</h3>
+          <p className="text-3xl font-display font-bold text-foreground mt-2">${jobsThisMonth > 0 ? Math.round(totalEarnings / jobsThisMonth).toLocaleString() : "0"}</p>
+          <p className="text-sm font-semibold text-blue-500 mt-2">Average earnings</p>
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-bold font-display text-foreground">Payout History</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-secondary/50 text-muted-foreground font-medium">
+              <tr>
+                <th className="px-6 py-4">Period</th>
+                <th className="px-6 py-4">Amount</th>
+                <th className="px-6 py-4">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {mockPayouts.map((payout, idx) => (
+                <tr key={idx} className="hover:bg-secondary/30 transition-colors">
+                  <td className="px-6 py-4 font-medium text-foreground">{payout.period}</td>
+                  <td className="px-6 py-4 font-bold">${payout.amount.toLocaleString()}</td>
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 capitalize">{payout.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-bold font-display text-foreground">Completed Jobs</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-secondary/50 text-muted-foreground font-medium">
+              <tr>
+                <th className="px-6 py-4">Job</th>
+                <th className="px-6 py-4">Customer</th>
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Earnings</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {isLoading ? (
+                <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Loading...</td></tr>
+              ) : completedJobs.length === 0 ? (
+                <tr><td colSpan={4} className="p-12 text-center">
+                  <Briefcase className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="font-semibold text-foreground">No completed jobs yet</p>
+                  <p className="text-sm text-muted-foreground">Earnings will appear here once you complete jobs.</p>
+                </td></tr>
+              ) : completedJobs.map((job) => (
+                <tr key={job.id} className="hover:bg-secondary/30 transition-colors">
+                  <td className="px-6 py-4 font-medium text-foreground">{job.title}</td>
+                  <td className="px-6 py-4 text-foreground">{job.customer?.firstName} {job.customer?.lastName}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{job.scheduledStart ? format(new Date(job.scheduledStart), "MMM d, yyyy") : "—"}</td>
+                  <td className="px-6 py-4 font-bold">{job.estimatedRevenue ? `$${Number(job.estimatedRevenue).toLocaleString()}` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminFinancialsView() {
   const { data: invoicesData, isLoading: invLoading } = useListInvoices();
   const { data: analytics } = useGetRevenueAnalytics({ period: "30d" });
   const [filter, setFilter] = useState<"all" | "draft" | "sent" | "paid" | "overdue">("all");
@@ -163,4 +279,15 @@ export default function Financials() {
       )}
     </div>
   );
+}
+
+export default function Financials() {
+  const { isAtLeastRole } = useMockAuth();
+  const isAdmin = isAtLeastRole("admin");
+
+  if (!isAdmin) {
+    return <OperatorEarningsView />;
+  }
+
+  return <AdminFinancialsView />;
 }

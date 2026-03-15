@@ -102,25 +102,25 @@ function AppRouter() {
               </Route>
 
               <Route path="/gps">
-                <ProtectedRoute requiredFeature="gps_tracking">
+                <ProtectedRoute requiredFeature="gps_tracking" minRole="admin">
                   <GPS />
                 </ProtectedRoute>
               </Route>
 
               <Route path="/reviews">
-                <ProtectedRoute requiredFeature="referral_network">
+                <ProtectedRoute requiredFeature="referral_network" minRole="admin">
                   <Reviews />
                 </ProtectedRoute>
               </Route>
 
               <Route path="/referrals">
-                <ProtectedRoute requiredFeature="referral_network">
+                <ProtectedRoute requiredFeature="referral_network" minRole="admin">
                   <Referrals />
                 </ProtectedRoute>
               </Route>
 
               <Route path="/analytics">
-                <ProtectedRoute requiredFeature="full_analytics">
+                <ProtectedRoute requiredFeature="full_analytics" minRole="admin">
                   <Analytics />
                 </ProtectedRoute>
               </Route>

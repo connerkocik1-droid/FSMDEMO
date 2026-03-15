@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useListJobs, useCreateJob, useUpdateJob, useListCustomers } from "@workspace/api-client-react";
 import { Search, Plus, Calendar, MapPin, MoreHorizontal, Clock, CheckCircle2, AlertCircle, User, Briefcase, X, ArrowRight, Play, Flag, FileText } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday, isFuture, isPast } from "date-fns";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "wouter";
+import { useMockAuth } from "@/lib/mock-auth";
 
 const createJobSchema = z.object({
   customerId: z.coerce.number().min(1, "Customer is required"),
@@ -27,11 +28,14 @@ const STATUS_FLOW: Record<string, { next: string; label: string; icon: any; colo
 };
 
 export default function Jobs() {
+  const { isAtLeastRole, user } = useMockAuth();
+  const isAdmin = isAtLeastRole("admin");
   const [isAdding, setIsAdding] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [showIssue, setShowIssue] = useState(false);
   const [issueText, setIssueText] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>(isAdmin ? "all" : "available");
+  const [operatorTab, setOperatorTab] = useState<"available" | "upcoming" | "past">("available");
   const { data: jobsData, isLoading: jobsLoading, refetch } = useListJobs();
   const { data: customersData } = useListCustomers();
   const { mutate: createJob, isPending: isCreating } = useCreateJob();
@@ -64,31 +68,61 @@ export default function Jobs() {
     });
   };
 
-  const filteredJobs = jobsData?.jobs.filter(j => filterStatus === "all" || j.status === filterStatus) || [];
+  const allJobs = jobsData?.jobs || [];
+
+  const userIdHash = (user?.id || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const myJobs = isAdmin ? allJobs : allJobs.filter(j => j.id % 3 === userIdHash % 3);
+
+  const getOperatorFilteredJobs = () => {
+    switch (operatorTab) {
+      case "available":
+        return myJobs.filter(j => j.status === "scheduled" || j.status === "in_progress");
+      case "upcoming":
+        return myJobs.filter(j => j.status === "scheduled" && j.scheduledStart && isFuture(new Date(j.scheduledStart)));
+      case "past":
+        return myJobs.filter(j => j.status === "completed" || j.status === "cancelled");
+      default:
+        return myJobs;
+    }
+  };
+
+  const filteredJobs = isAdmin
+    ? allJobs.filter(j => filterStatus === "all" || j.status === filterStatus)
+    : getOperatorFilteredJobs();
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-display font-bold text-foreground">Jobs & Scheduling</h2>
-          <p className="text-muted-foreground mt-1">Schedule and manage all your active service jobs.</p>
+          <h2 className="text-3xl font-display font-bold text-foreground">{isAdmin ? "Jobs & Scheduling" : "My Jobs"}</h2>
+          <p className="text-muted-foreground mt-1">{isAdmin ? "Schedule and manage all your active service jobs." : "View and manage your assigned jobs."}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/dispatch" className="px-5 py-2.5 bg-secondary text-secondary-foreground font-semibold rounded-xl hover:bg-secondary/80 transition-all border shadow-sm">
-            Board View
-          </Link>
-          <button onClick={() => setIsAdding(true)} className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm flex items-center gap-2">
-            <Plus className="w-5 h-5" /> Schedule Job
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-3">
+            <Link href="/dispatch" className="px-5 py-2.5 bg-secondary text-secondary-foreground font-semibold rounded-xl hover:bg-secondary/80 transition-all border shadow-sm">
+              Board View
+            </Link>
+            <button onClick={() => setIsAdding(true)} className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm flex items-center gap-2">
+              <Plus className="w-5 h-5" /> Schedule Job
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {["all", "scheduled", "in_progress", "completed", "cancelled"].map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filterStatus === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary/80"}`}>
-            {s === "all" ? "All" : s.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
-          </button>
-        ))}
+        {isAdmin ? (
+          ["all", "scheduled", "in_progress", "completed", "cancelled"].map(s => (
+            <button key={s} onClick={() => setFilterStatus(s)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filterStatus === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary/80"}`}>
+              {s === "all" ? "All" : s.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
+            </button>
+          ))
+        ) : (
+          (["available", "upcoming", "past"] as const).map(tab => (
+            <button key={tab} onClick={() => setOperatorTab(tab)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${operatorTab === tab ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary/80"}`}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
