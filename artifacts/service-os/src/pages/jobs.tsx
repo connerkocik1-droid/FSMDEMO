@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useListJobs, useCreateJob, useUpdateJob, useListCustomers } from "@workspace/api-client-react";
-import { Search, Plus, Calendar, MapPin, MoreHorizontal, Clock, CheckCircle2, AlertCircle, User, Briefcase, X, ArrowRight, Play, Flag, FileText } from "lucide-react";
+import { useListJobs, useCreateJob, useUpdateJob, useListCustomers, useCreateCustomer } from "@workspace/api-client-react";
+import { Search, Plus, Calendar, MapPin, MoreHorizontal, Clock, CheckCircle2, AlertCircle, User, Briefcase, X, ArrowRight, Play, Flag, FileText, UserPlus, ChevronLeft } from "lucide-react";
 import { format, isToday, isFuture, isPast } from "date-fns";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,7 +9,7 @@ import { Link } from "wouter";
 import { useMockAuth } from "@/lib/mock-auth";
 
 const createJobSchema = z.object({
-  customerId: z.coerce.number().min(1, "Customer is required"),
+  customerId: z.coerce.number().optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   priority: z.enum(["low", "normal", "high", "urgent"]),
@@ -37,24 +37,62 @@ export default function Jobs() {
   const [filterStatus, setFilterStatus] = useState<string>(isAdmin ? "all" : "available");
   const [operatorTab, setOperatorTab] = useState<"available" | "upcoming" | "past">("available");
   const { data: jobsData, isLoading: jobsLoading, refetch } = useListJobs();
-  const { data: customersData } = useListCustomers();
+  const { data: customersData, refetch: refetchCustomers } = useListCustomers();
   const { mutate: createJob, isPending: isCreating } = useCreateJob();
+  const { mutate: createCustomer, isPending: isCreatingCustomer } = useCreateCustomer();
   const { mutate: updateJob } = useUpdateJob();
+
+  const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
+  const [newCustomer, setNewCustomer] = useState({ firstName: "", lastName: "", email: "", phone: "", address: "", city: "" });
+  const [newCustomerErrors, setNewCustomerErrors] = useState<Record<string, string>>({});
 
   const form = useForm<CreateJobData>({
     resolver: zodResolver(createJobSchema),
     defaultValues: { priority: "normal" }
   });
 
+  function validateNewCustomer() {
+    const errs: Record<string, string> = {};
+    if (!newCustomer.firstName.trim()) errs.firstName = "First name is required";
+    if (!newCustomer.lastName.trim()) errs.lastName = "Last name is required";
+    setNewCustomerErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function handleCloseModal() {
+    setIsAdding(false);
+    form.reset();
+    setCustomerMode("existing");
+    setNewCustomer({ firstName: "", lastName: "", email: "", phone: "", address: "", city: "" });
+    setNewCustomerErrors({});
+  }
+
   const onSubmit = (formData: CreateJobData) => {
-    const payload = {
-      ...formData,
-      scheduledStart: formData.scheduledStart ? new Date(formData.scheduledStart).toISOString() : undefined,
-      scheduledEnd: formData.scheduledEnd ? new Date(formData.scheduledEnd).toISOString() : undefined,
+    const scheduleJob = (customerId: number) => {
+      createJob({
+        data: {
+          ...formData,
+          customerId,
+          scheduledStart: formData.scheduledStart ? new Date(formData.scheduledStart).toISOString() : undefined,
+          scheduledEnd: formData.scheduledEnd ? new Date(formData.scheduledEnd).toISOString() : undefined,
+        }
+      }, {
+        onSuccess: () => { handleCloseModal(); refetch(); refetchCustomers(); }
+      });
     };
-    createJob({ data: payload }, {
-      onSuccess: () => { setIsAdding(false); form.reset(); refetch(); }
-    });
+
+    if (customerMode === "new") {
+      if (!validateNewCustomer()) return;
+      createCustomer({ data: { ...newCustomer } }, {
+        onSuccess: (customer: any) => scheduleJob(customer.id),
+      });
+    } else {
+      if (!formData.customerId || formData.customerId < 1) {
+        form.setError("customerId", { message: "Please select a customer" });
+        return;
+      }
+      scheduleJob(formData.customerId);
+    }
   };
 
   const handleStatusChange = (jobId: number, newStatus: string) => {
@@ -321,18 +359,96 @@ export default function Jobs() {
           <div className="bg-card w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="px-8 py-6 border-b flex items-center justify-between">
               <h3 className="text-xl font-display font-bold text-foreground">Schedule New Job</h3>
-              <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-secondary rounded-full text-muted-foreground"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={handleCloseModal} className="p-2 hover:bg-secondary rounded-full text-muted-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-6">
+              {/* Customer — existing or new */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Customer</label>
-                <select {...form.register("customerId")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                  <option value="">Select customer...</option>
-                  {customersData?.customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-                  ))}
-                </select>
-                {form.formState.errors.customerId && <p className="text-xs text-destructive">{form.formState.errors.customerId.message}</p>}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold">Customer</label>
+                  {customerMode === "existing" ? (
+                    <button
+                      type="button"
+                      onClick={() => { setCustomerMode("new"); form.setValue("customerId", 0); }}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" /> Add new customer
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setCustomerMode("existing"); setNewCustomerErrors({}); }}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" /> Back to existing
+                    </button>
+                  )}
+                </div>
+
+                {customerMode === "existing" ? (
+                  <>
+                    <select {...form.register("customerId")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                      <option value="">Select customer...</option>
+                      {customersData?.customers.map(c => (
+                        <option key={c.id} value={c.id}>{c.firstName} {c.lastName}{c.phone ? ` — ${c.phone}` : ""}</option>
+                      ))}
+                    </select>
+                    {form.formState.errors.customerId && <p className="text-xs text-destructive">{form.formState.errors.customerId.message}</p>}
+                  </>
+                ) : (
+                  <div className="rounded-xl border bg-secondary/30 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <p className="text-xs text-muted-foreground font-medium">New customer details</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <input
+                          value={newCustomer.firstName}
+                          onChange={e => setNewCustomer(p => ({ ...p, firstName: e.target.value }))}
+                          placeholder="First name *"
+                          className={`w-full px-3 py-2 rounded-lg bg-background border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary ${newCustomerErrors.firstName ? "border-destructive" : ""}`}
+                        />
+                        {newCustomerErrors.firstName && <p className="text-xs text-destructive mt-1">{newCustomerErrors.firstName}</p>}
+                      </div>
+                      <div>
+                        <input
+                          value={newCustomer.lastName}
+                          onChange={e => setNewCustomer(p => ({ ...p, lastName: e.target.value }))}
+                          placeholder="Last name *"
+                          className={`w-full px-3 py-2 rounded-lg bg-background border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary ${newCustomerErrors.lastName ? "border-destructive" : ""}`}
+                        />
+                        {newCustomerErrors.lastName && <p className="text-xs text-destructive mt-1">{newCustomerErrors.lastName}</p>}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="email"
+                        value={newCustomer.email}
+                        onChange={e => setNewCustomer(p => ({ ...p, email: e.target.value }))}
+                        placeholder="Email"
+                        className="w-full px-3 py-2 rounded-lg bg-background border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                      <input
+                        value={newCustomer.phone}
+                        onChange={e => setNewCustomer(p => ({ ...p, phone: e.target.value }))}
+                        placeholder="Phone"
+                        className="w-full px-3 py-2 rounded-lg bg-background border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        value={newCustomer.address}
+                        onChange={e => setNewCustomer(p => ({ ...p, address: e.target.value }))}
+                        placeholder="Address"
+                        className="w-full px-3 py-2 rounded-lg bg-background border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                      <input
+                        value={newCustomer.city}
+                        onChange={e => setNewCustomer(p => ({ ...p, city: e.target.value }))}
+                        placeholder="City"
+                        className="w-full px-3 py-2 rounded-lg bg-background border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Job Title / Service</label>
@@ -379,9 +495,9 @@ export default function Jobs() {
                 </div>
               </div>
               <div className="pt-6 flex items-center justify-end gap-3 border-t">
-                <button type="button" onClick={() => setIsAdding(false)} className="px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary rounded-xl">Cancel</button>
-                <button type="submit" disabled={isCreating} className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 shadow-sm disabled:opacity-50">
-                  {isCreating ? "Scheduling..." : "Schedule Job"}
+                <button type="button" onClick={handleCloseModal} className="px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary rounded-xl">Cancel</button>
+                <button type="submit" disabled={isCreating || isCreatingCustomer} className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 shadow-sm disabled:opacity-50">
+                  {isCreatingCustomer ? "Creating customer..." : isCreating ? "Scheduling..." : "Schedule Job"}
                 </button>
               </div>
             </form>
