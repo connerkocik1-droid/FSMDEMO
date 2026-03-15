@@ -81,7 +81,9 @@ ServiceOS is a full-stack pnpm monorepo.
 - **API Design**: RESTful API routes clearly structured by resource (`/api/leads`, `/api/jobs`, etc.).
 - **Authorization**: A robust permission matrix (`canAccessFeature`, `hasPermission`, `isAtLeastRole`) governs access to features and functionality based on user role and subscription tier. `ProtectedRoute` components enforce these rules.
 - **Data Schemas**: Zod for runtime validation of API requests and responses.
-- **Database Schema**: 29 tables covering all entities from companies and users to jobs, invoices, leads, marketing content, live demo sessions, tier videos, and live demo registrations. Schema fully synced: `live_demo_sessions` uses `datetime`/`external_meeting_link`/`max_registrations`; `tier_videos` stores per-tier video URLs; `live_demo_registrations` stores webinar sign-ups.
+- **Database Schema**: 31 tables covering all entities from companies and users to jobs, invoices, leads, marketing content, live demo sessions, tier videos, live demo registrations, invoice templates, and invoice line items.
+- **Invoice Manager**: Full invoice creation flow in the Billing settings tab. Two sections: (1) Invoice Template — logo URL, primary/accent color pickers, 3 invoice styles, business address, US state sales tax auto-lookup, payment terms, footer text; (2) Create an Invoice — customer selector, due date, line items with quantity/unit price, AI line item generation, tax calculation, Save as Draft / Send to Customer actions. AI generation uses OpenAI via Replit AI Integrations (no API key required).
+- **OpenAI Integration**: Provisioned via Replit AI Integrations (`AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`). Server-side client at `lib/integrations-openai-ai-server`. Currently used for invoice AI line item suggestions (`/api/invoice-manager/ai-suggest-items`).
 - **SEO**: Comprehensive SEO strategy including `react-helmet-async` for meta tags, JSON-LD schema helpers, sitemap generation, robots.txt, and GA4 integration.
 
 ## External Dependencies

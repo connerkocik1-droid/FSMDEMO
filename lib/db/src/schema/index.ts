@@ -28,3 +28,5 @@ export * from "./blog_subscribers";
 export * from "./live_demo_sessions";
 export * from "./live_demo_registrations";
 export * from "./tier_videos";
+export * from "./invoice_templates";
+export * from "./invoice_line_items";

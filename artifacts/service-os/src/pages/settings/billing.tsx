@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CreditCard, ArrowUpCircle, ArrowDownCircle, CheckCircle2, Download, AlertTriangle } from "lucide-react";
 import { useMockAuth } from "@/lib/mock-auth";
+import InvoiceManager from "./invoice-manager";
 
 const TIERS = [
   { id: "free", name: "Free", monthly: 0, annual: 0, maxUsers: 3 },
@@ -179,6 +180,8 @@ export default function Billing() {
           <p className="text-sm text-muted-foreground">No invoices yet.</p>
         )}
       </div>
+
+      <InvoiceManager />
     </div>
   );
 }

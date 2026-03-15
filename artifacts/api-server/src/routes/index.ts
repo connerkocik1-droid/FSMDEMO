@@ -21,6 +21,7 @@ import billingRouter from "./billing.js";
 import blogRouter from "./blog.js";
 import emailSubscribeRouter from "./email-subscribe.js";
 import devAdminRouter from "./dev-admin.js";
+import invoiceManagerRouter from "./invoice-manager.js";
 
 const router: IRouter = Router();
 
@@ -45,6 +46,7 @@ router.use("/users", usersRouter);
 router.use("/invites", invitesRouter);
 router.use("/audit-log", auditRouter);
 router.use("/billing", billingRouter);
+router.use("/invoice-manager", invoiceManagerRouter);
 router.use("/blog", blogRouter);
 router.use("/email", emailSubscribeRouter);
 

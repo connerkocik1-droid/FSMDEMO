@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "marked": "^17.0.4",
     "nanoid": "^5.1.6",
+    "@workspace/integrations-openai-ai-server": "workspace:*",
     "stripe": "^20.4.1"
   },
   "devDependencies": {
