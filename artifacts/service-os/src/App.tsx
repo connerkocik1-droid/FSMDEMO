@@ -37,6 +37,8 @@ import BillingPage from "@/pages/settings/billing";
 import AuditLogPage from "@/pages/settings/audit";
 import PublicReview from "@/pages/public-review";
 import IndustryPageRouter from "@/pages/industry";
+import CompareRoute from "@/pages/compare";
+import CompareHub from "@/pages/compare/compare-hub";
 import NotFound from "@/pages/not-found";
 import BlogList from "@/pages/blog/index";
 import BlogPost from "@/pages/blog/post";
@@ -111,6 +113,8 @@ function AppRouter() {
       <Route path="/blog/author/:slug" component={AuthorPage} />
       <Route path="/blog/:slug" component={BlogRouter} />
       <Route path="/blog" component={BlogList} />
+      <Route path="/compare" component={CompareHub} />
+      <Route path="/compare/:slug" component={CompareRoute} />
       
       <Route path="/:rest*">
         <MockSignedIn>

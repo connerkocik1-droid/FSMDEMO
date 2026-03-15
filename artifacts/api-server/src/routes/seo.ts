@@ -23,6 +23,13 @@ const STATIC_ROUTES = [
   "/industries/moving",
   "/industries/plumbing",
   "/industries/lawn-care",
+  "/compare/serviceos-vs-jobber",
+  "/compare/serviceos-vs-housecall-pro",
+  "/compare/serviceos-vs-servicetitan",
+  "/compare/serviceos-vs-fieldpulse",
+  "/compare/jobber-vs-housecall-pro",
+  "/compare/servicetitan-pricing",
+  "/compare/field-service-software",
 ];
 
 function discoverBlogPosts(): string[] {

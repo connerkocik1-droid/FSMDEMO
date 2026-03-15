@@ -25,13 +25,13 @@ const INDUSTRY_LINKS = [
 ];
 
 const COMPARE_LINKS = [
-  { label: "vs Jobber", href: "/compare/jobber" },
-  { label: "vs Housecall Pro", href: "/compare/housecall-pro" },
-  { label: "vs ServiceTitan", href: "/compare/servicetitan" },
-  { label: "vs FieldPulse", href: "/compare/fieldpulse" },
-  { label: "vs GorillaDesk", href: "/compare/gorilladesk" },
-  { label: "vs Workiz", href: "/compare/workiz" },
-  { label: "vs ServiceM8", href: "/compare/servicem8" },
+  { label: "vs Jobber", href: "/compare/serviceos-vs-jobber" },
+  { label: "vs Housecall Pro", href: "/compare/serviceos-vs-housecall-pro" },
+  { label: "vs ServiceTitan", href: "/compare/serviceos-vs-servicetitan" },
+  { label: "vs FieldPulse", href: "/compare/serviceos-vs-fieldpulse" },
+  { label: "Jobber vs Housecall Pro", href: "/compare/jobber-vs-housecall-pro" },
+  { label: "ServiceTitan Pricing", href: "/compare/servicetitan-pricing" },
+  { label: "Field Service Software Guide", href: "/compare/field-service-software" },
 ];
 
 interface DropdownProps {

@@ -57,9 +57,10 @@ export function trackPricingView() {
   });
 }
 
-export function trackComparisonView(industry?: string) {
+export function trackComparisonView(competitor?: string, industry?: string) {
   trackEvent("view_comparison", {
     event_category: "engagement",
+    ...(competitor ? { competitor } : {}),
     ...(industry ? { industry } : {}),
   });
 }
