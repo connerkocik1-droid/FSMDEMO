@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { MockSignInButton } from "@/lib/mock-auth";
 import { cn } from "@/lib/utils";
@@ -93,61 +94,7 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">Simple, transparent pricing</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Choose the plan that fits your team size.</p>
-          </div>
-
-          <div className="grid md:grid-cols-5 gap-5">
-            {[
-              { name: "Free", price: "$0", users: "Up to 3 users", features: ["Core operations", "Basic scheduling", "Manual invoicing"] },
-              { name: "Independent", price: "$49", users: "Up to 6 users", features: ["Live GPS tracking", "Manual SMS", "Referral network access"] },
-              { name: "Pro", price: "$199", users: "Up to 25 users", features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"], popular: true },
-              { name: "Franchise", price: "$499", users: "Up to 75 users", features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"] },
-              { name: "Enterprise", price: "Custom", users: "75+ users", features: ["Everything in Franchise", "Custom integrations", "Dedicated success manager", "Custom SLA & pricing"] }
-            ].map((plan, i) => (
-              <div key={i} className={cn(
-                "relative bg-card p-8 rounded-3xl border flex flex-col",
-                plan.popular ? "border-primary shadow-xl shadow-primary/10 md:-translate-y-4" : "shadow-sm"
-              )}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-full">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                <div className="mt-4 mb-2">
-                  <span className="text-4xl font-display font-bold">{plan.price}</span>
-                  {plan.price !== "Custom" && <span className="text-muted-foreground">/mo</span>}
-                </div>
-                <p className="text-sm font-medium text-primary mb-8">{plan.users}</p>
-                
-                <ul className="space-y-4 mb-8 flex-1">
-                  {plan.features.map((feat, j) => (
-                    <li key={j} className="flex items-start gap-3 text-sm text-muted-foreground">
-                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                      {feat}
-                    </li>
-                  ))}
-                </ul>
-                <Link 
-                  href="/demo" 
-                  className={cn(
-                    "w-full py-3 rounded-xl font-semibold text-center transition-all",
-                    plan.popular 
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  )}
-                >
-                  {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PricingSection />
 
       {/* Footer */}
       <footer className="bg-sidebar py-12 border-t border-sidebar-border">
@@ -164,6 +111,185 @@ export default function Landing() {
         </div>
       </footer>
     </div>
+  );
+}
+
+const PLANS = [
+  {
+    name: "Free",
+    monthly: 0,
+    annual: 0,
+    users: "Up to 3 users",
+    features: ["Core operations", "Basic scheduling", "Manual invoicing"],
+  },
+  {
+    name: "Independent",
+    monthly: 39,
+    introMonthly: 19,
+    introNote: "1st month",
+    annual: 299,
+    users: "Up to 6 users",
+    features: ["Live GPS tracking", "Manual SMS", "Referral network access"],
+  },
+  {
+    name: "Pro",
+    monthly: 99,
+    introMonthly: 49,
+    introNote: "1st month",
+    annual: 899,
+    users: "Up to 25 users",
+    features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"],
+    popular: true,
+  },
+  {
+    name: "Franchise",
+    monthly: 349,
+    introMonthly: 249,
+    introNote: "1st 3 months",
+    annual: 3199,
+    users: "Up to 75 users",
+    features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"],
+  },
+  {
+    name: "Enterprise",
+    monthly: null,
+    annual: null,
+    users: "75+ users",
+    features: ["Everything in Franchise", "Custom integrations", "Dedicated success manager", "Custom SLA & pricing"],
+  },
+];
+
+function PricingSection() {
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+
+  return (
+    <section id="pricing" className="py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">Simple, transparent pricing</h2>
+          <p className="mt-4 text-lg text-muted-foreground">Choose the plan that fits your team size.</p>
+
+          <div className="inline-flex items-center mt-8 rounded-full border bg-card p-1 gap-1">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={cn(
+                "px-5 py-2 rounded-full text-sm font-semibold transition-all",
+                billing === "monthly"
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBilling("annual")}
+              className={cn(
+                "px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2",
+                billing === "annual"
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Annual
+              <span className={cn(
+                "text-xs px-2 py-0.5 rounded-full font-bold",
+                billing === "annual" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-green-100 text-green-700"
+              )}>
+                Save up to 25%
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-5 gap-5">
+          {PLANS.map((plan, i) => {
+            const isCustom = plan.monthly === null;
+            const isFree = plan.monthly === 0;
+            const price = billing === "annual" && !isCustom && !isFree ? plan.annual : plan.monthly;
+            const showIntro = billing === "monthly" && plan.introMonthly !== undefined;
+
+            return (
+              <div key={i} className={cn(
+                "relative bg-card p-8 rounded-3xl border flex flex-col",
+                plan.popular ? "border-primary shadow-xl shadow-primary/10 md:-translate-y-4" : "shadow-sm"
+              )}>
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-full whitespace-nowrap">
+                    Most Popular
+                  </div>
+                )}
+
+                <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+
+                <div className="mt-4 mb-1">
+                  {isCustom ? (
+                    <span className="text-4xl font-display font-bold">Custom</span>
+                  ) : isFree ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-display font-bold">$0</span>
+                      <span className="text-muted-foreground">/mo</span>
+                    </div>
+                  ) : billing === "annual" ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-display font-bold">${price}</span>
+                      <span className="text-muted-foreground">/yr</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-display font-bold">${price}</span>
+                      <span className="text-muted-foreground">/mo</span>
+                    </div>
+                  )}
+                </div>
+
+                {showIntro && (
+                  <div className="mb-1">
+                    <span className="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                      {plan.introNote} only ${plan.introMonthly}
+                    </span>
+                  </div>
+                )}
+
+                {billing === "annual" && !isCustom && !isFree && (
+                  <div className="mb-1">
+                    <span className="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                      Saves ${(plan.monthly! * 12) - plan.annual!}/yr vs monthly
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-sm font-medium text-primary mt-2 mb-8">{plan.users}</p>
+
+                <ul className="space-y-4 mb-8 flex-1">
+                  {plan.features.map((feat, j) => (
+                    <li key={j} className="flex items-start gap-3 text-sm text-muted-foreground">
+                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      {feat}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/demo"
+                  className={cn(
+                    "w-full py-3 rounded-xl font-semibold text-center transition-all",
+                    plan.popular
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  )}
+                >
+                  {isCustom ? "Contact Sales" : "Get Started"}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-center text-sm text-muted-foreground mt-10">
+          All paid plans include a 14-day free trial. No credit card required.
+        </p>
+      </div>
+    </section>
   );
 }
 
