@@ -36,6 +36,7 @@ import UserProfile from "@/pages/settings/profile";
 import BillingPage from "@/pages/settings/billing";
 import AuditLogPage from "@/pages/settings/audit";
 import PublicReview from "@/pages/public-review";
+import IndustryPageRouter from "@/pages/industry";
 import NotFound from "@/pages/not-found";
 import BlogList from "@/pages/blog/index";
 import BlogPost from "@/pages/blog/post";
@@ -106,6 +107,7 @@ function AppRouter() {
       <Route path="/terms" component={Terms} />
       <Route path="/review/:token" component={PublicReview} />
 
+      <Route path="/industries/:slug" component={IndustryPageRouter} />
       <Route path="/blog/author/:slug" component={AuthorPage} />
       <Route path="/blog/:slug" component={BlogRouter} />
       <Route path="/blog" component={BlogList} />

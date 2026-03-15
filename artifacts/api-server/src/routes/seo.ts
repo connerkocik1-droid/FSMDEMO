@@ -15,6 +15,14 @@ const STATIC_ROUTES = [
   "/login",
   "/signup",
   "/compare",
+  "/industries/landscaping",
+  "/industries/hvac",
+  "/industries/roofing",
+  "/industries/pest-control",
+  "/industries/cleaning",
+  "/industries/moving",
+  "/industries/plumbing",
+  "/industries/lawn-care",
 ];
 
 function discoverBlogPosts(): string[] {
@@ -68,6 +76,7 @@ Allow: /contact
 Allow: /blog
 Allow: /demo
 Allow: /compare
+Allow: /industries/
 
 Disallow: /api/
 Disallow: /admin/
