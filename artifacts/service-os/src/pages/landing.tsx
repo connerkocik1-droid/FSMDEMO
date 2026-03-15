@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { MockSignInButton } from "@/lib/mock-auth";
 import { cn } from "@/lib/utils";
 import { ArrowRight, CheckCircle2, Star, Zap, BarChart3, Users, MessageSquare, MapPin, Shield, TrendingUp } from "lucide-react";
 
@@ -20,7 +19,9 @@ export default function Landing() {
             <Link href="/demo" className="hover:text-foreground transition-colors">Request Demo</Link>
           </div>
           <div className="flex items-center gap-4">
-            <MockSignInButton />
+            <Link href="/login" className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm hover:shadow active:scale-95 text-sm">
+              Sign In
+            </Link>
           </div>
         </div>
       </nav>
@@ -55,7 +56,7 @@ export default function Landing() {
               Get a Demo <ArrowRight className="w-5 h-5" />
             </Link>
             <Link 
-              href="/dashboard" 
+              href="/login" 
               className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
             >
               Log In

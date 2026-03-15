@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import Landing from "@/pages/landing";
+import DemoLogin from "@/pages/login";
 import Demo from "@/pages/demo";
 import Dashboard from "@/pages/dashboard";
 import Leads from "@/pages/leads";
@@ -45,6 +46,15 @@ function AppRouter() {
         </MockSignedIn>
       </Route>
       
+      <Route path="/login">
+        <MockSignedOut>
+          <DemoLogin />
+        </MockSignedOut>
+        <MockSignedIn>
+          <Redirect to="/dashboard" />
+        </MockSignedIn>
+      </Route>
+
       <Route path="/demo" component={Demo} />
       <Route path="/review/:token" component={PublicReview} />
       

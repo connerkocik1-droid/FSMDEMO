@@ -3,11 +3,100 @@ import type { Role, Tier } from "./permissions";
 import { canAccess, hasPermission, isAtLeastRole } from "./permissions";
 import type { Feature, Permission } from "./permissions";
 
+export interface DemoProfile {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  avatar: string;
+  role: Role;
+  tier: Tier;
+  tagline: string;
+  unlocked: string[];
+  locked: string[];
+}
+
+export const DEMO_PROFILES: DemoProfile[] = [
+  {
+    id: "free_owner",
+    name: "Sam Rivera",
+    email: "sam@samplelawn.com",
+    company: "Sample Lawn Co.",
+    avatar: "https://i.pravatar.cc/150?u=sam-rivera",
+    role: "owner",
+    tier: "free",
+    tagline: "Just getting started",
+    unlocked: ["Up to 3 users", "Core scheduling", "Basic invoicing", "Dashboard"],
+    locked: ["GPS tracking", "SMS hub", "Financials", "Analytics"],
+  },
+  {
+    id: "independent_owner",
+    name: "Taylor Brooks",
+    email: "taylor@brooksroofing.com",
+    company: "Brooks Roofing",
+    avatar: "https://i.pravatar.cc/150?u=taylor-brooks",
+    role: "owner",
+    tier: "independent",
+    tagline: "Solo operator growing fast",
+    unlocked: ["Up to 6 users", "Live GPS tracking", "Manual SMS", "Referral network", "Financials"],
+    locked: ["AI SMS workflows", "Full analytics", "Landing pages"],
+  },
+  {
+    id: "pro_owner",
+    name: "Jordan Lee",
+    email: "jordan@leehvac.com",
+    company: "Lee HVAC Services",
+    avatar: "https://i.pravatar.cc/150?u=jordan-lee",
+    role: "owner",
+    tier: "pro",
+    tagline: "Growing team, full visibility",
+    unlocked: ["Up to 25 users", "AI SMS workflows", "Full analytics", "Review automation", "Priority support"],
+    locked: ["Landing pages", "Multi-location routing", "Custom API"],
+  },
+  {
+    id: "franchise_owner",
+    name: "Casey Morgan",
+    email: "casey@morganlawn.net",
+    company: "Morgan Lawn Network",
+    avatar: "https://i.pravatar.cc/150?u=casey-morgan",
+    role: "owner",
+    tier: "franchise",
+    tagline: "Multi-location franchise",
+    unlocked: ["Up to 75 users", "Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"],
+    locked: [],
+  },
+  {
+    id: "enterprise_owner",
+    name: "Alex Chen",
+    email: "alex@chenservices.com",
+    company: "Chen Field Services Group",
+    avatar: "https://i.pravatar.cc/150?u=alex-chen",
+    role: "owner",
+    tier: "enterprise",
+    tagline: "Enterprise-scale operations",
+    unlocked: ["Unlimited users", "Everything in Franchise", "Custom integrations", "Dedicated SLA", "White-glove onboarding"],
+    locked: [],
+  },
+  {
+    id: "field_tech",
+    name: "Marcus Williams",
+    email: "marcus@leehvac.com",
+    company: "Lee HVAC Services",
+    avatar: "https://i.pravatar.cc/150?u=marcus-williams",
+    role: "operator",
+    tier: "pro",
+    tagline: "Field technician view",
+    unlocked: ["My job queue", "SMS check-in", "Job completion reports", "GPS check-in"],
+    locked: ["Financials", "CRM & Leads", "Analytics", "Dispatch board"],
+  },
+];
+
 interface MockUser {
   id: string;
   fullName: string;
   primaryEmailAddress: { emailAddress: string };
   imageUrl: string;
+  company: string;
   publicMetadata: {
     role: Role;
     tier: Tier;
@@ -22,7 +111,9 @@ interface AuthContextType {
   role: Role;
   tier: Tier;
   companyId: number | null;
+  activeProfileId: string | null;
   signIn: () => void;
+  signInAs: (profile: DemoProfile) => void;
   signOut: () => void;
   setRole: (role: Role) => void;
   setTier: (tier: Tier) => void;
@@ -31,30 +122,39 @@ interface AuthContextType {
   isAtLeastRole: (requiredRole: Role) => boolean;
 }
 
-const defaultUser: MockUser = {
-  id: "user_mock_123",
-  fullName: "Demo User",
-  primaryEmailAddress: { emailAddress: "demo@serviceos.com" },
-  imageUrl: "https://i.pravatar.cc/150?u=demo",
-  publicMetadata: {
-    role: "owner",
-    tier: "pro",
-    companyId: 1,
-  }
-};
-
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [role, setRole] = useState<Role>("owner");
   const [tier, setTier] = useState<Tier>("pro");
+  const [activeProfile, setActiveProfile] = useState<DemoProfile | null>(null);
 
-  const signIn = useCallback(() => setIsSignedIn(true), []);
-  const signOut = useCallback(() => setIsSignedIn(false), []);
+  const signIn = useCallback(() => {
+    setRole("owner");
+    setTier("pro");
+    setActiveProfile(null);
+    setIsSignedIn(true);
+  }, []);
+
+  const signInAs = useCallback((profile: DemoProfile) => {
+    setRole(profile.role);
+    setTier(profile.tier);
+    setActiveProfile(profile);
+    setIsSignedIn(true);
+  }, []);
+
+  const signOut = useCallback(() => {
+    setIsSignedIn(false);
+    setActiveProfile(null);
+  }, []);
 
   const currentUser: MockUser | null = isSignedIn ? {
-    ...defaultUser,
+    id: activeProfile ? `user_${activeProfile.id}` : "user_mock_123",
+    fullName: activeProfile?.name ?? "Demo User",
+    primaryEmailAddress: { emailAddress: activeProfile?.email ?? "demo@serviceos.com" },
+    imageUrl: activeProfile?.avatar ?? "https://i.pravatar.cc/150?u=demo",
+    company: activeProfile?.company ?? "Demo Company",
     publicMetadata: { role, tier, companyId: 1 },
   } : null;
 
@@ -67,7 +167,9 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         role,
         tier,
         companyId: isSignedIn ? 1 : null,
+        activeProfileId: activeProfile?.id ?? null,
         signIn,
+        signInAs,
         signOut,
         setRole,
         setTier,
@@ -114,7 +216,7 @@ export function MockUserButton() {
       <img src={user.imageUrl} alt={user.fullName} className="w-8 h-8 rounded-full border border-border" />
       <div className="text-left hidden md:block">
         <p className="text-sm font-semibold leading-none">{user.fullName}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user.publicMetadata.role}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user.publicMetadata.role} · {user.company}</p>
       </div>
     </button>
   );
