@@ -3,6 +3,7 @@ export interface SuggestedAddon {
   addon_key: string;
   price: number;
   price_label: string;
+  is_one_time?: boolean;
   reason: string;
   default_on: boolean;
   triggered_by?: string;
@@ -25,5 +26,5 @@ export interface QuoteResponse {
   headline: string;
 }
 
-export type WizardStep = 0 | 1 | 2 | 3 | "processing" | "quote";
+export type WizardStep = 0 | 1 | 2 | "processing" | "quote";
 export type BillingPeriod = "monthly" | "annual";
