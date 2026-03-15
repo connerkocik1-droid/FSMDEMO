@@ -145,7 +145,7 @@ const FAQ = [
   },
   {
     q: "What is the 30-day discount?",
-    a: "New Pro and Enterprise subscribers get 50% off their first invoice — that's $29.50 for Pro or $64.50 for Enterprise (monthly billing). This is applied automatically at checkout with no code needed.",
+    a: "New Pro and Enterprise monthly subscribers get 50% off their first invoice — that's $29.50 for Pro or $64.50 for Enterprise. This discount applies to monthly billing only and is not available on annual plans. It is applied automatically at checkout with no code needed.",
   },
   {
     q: "How does the location add-on work?",
@@ -217,7 +217,7 @@ export default function Pricing() {
           <div className="text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-semibold border border-green-200">
               <Gift className="w-4 h-4" />
-              50% off your first 30 days — no code needed
+              50% off your first 30 days on monthly plans — no code needed
             </div>
             <h1 className="text-4xl sm:text-5xl font-display font-bold text-foreground tracking-tight">
               Pricing built for field service
@@ -293,10 +293,15 @@ export default function Pricing() {
                   <span className="text-5xl font-display font-bold text-foreground">${PRICES.pro[billing]}</span>
                   <span className="text-muted-foreground mb-1 pb-1">/mo{billing === "annual" ? " billed annually" : ""}</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold border border-green-200">
-                  <Gift className="w-3 h-3" />
-                  50% off first 30 days — ${(PRICES.pro[billing] * 0.5).toFixed(2)} today
-                </div>
+                {billing === "annual" && (
+                  <p className="text-sm font-semibold text-foreground mt-2">${PRICES.pro.annual * 12}/year</p>
+                )}
+                {billing === "monthly" && (
+                  <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold border border-green-200">
+                    <Gift className="w-3 h-3" />
+                    50% off first 30 days — ${(PRICES.pro.monthly * 0.5).toFixed(2)} today
+                  </div>
+                )}
                 <p className="text-muted-foreground text-sm mt-3">Everything your growing business needs, fully automated.</p>
                 <p className="text-xs text-muted-foreground mt-1.5 font-medium">25 users included · +$1.99/mo per extra active user · Inactive users never billed</p>
                 <div className="my-5 h-px bg-border" />
@@ -345,10 +350,15 @@ export default function Pricing() {
                   <span className="text-5xl font-display font-bold text-white">${PRICES.enterprise[billing]}</span>
                   <span className="text-slate-400 mb-1 pb-1">/mo starting{billing === "annual" ? " billed annually" : ""}</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs font-semibold border border-violet-500/30">
-                  <Gift className="w-3 h-3" />
-                  50% off first 30 days — ${(PRICES.enterprise[billing] * 0.5).toFixed(2)} today
-                </div>
+                {billing === "annual" && (
+                  <p className="text-sm font-semibold text-white mt-2">${PRICES.enterprise.annual * 12}/year</p>
+                )}
+                {billing === "monthly" && (
+                  <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs font-semibold border border-violet-500/30">
+                    <Gift className="w-3 h-3" />
+                    50% off first 30 days — ${(PRICES.enterprise.monthly * 0.5).toFixed(2)} today
+                  </div>
+                )}
                 <p className="text-slate-300 text-sm mt-3">Multi-location operations with all features included.</p>
                 <p className="text-xs text-slate-400 mt-1.5 font-medium">50 users per location · 3 locations included · +$1.29/mo per extra active user</p>
                 <div className="my-5 h-px bg-slate-700" />
