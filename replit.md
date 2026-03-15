@@ -114,6 +114,7 @@ artifacts-monorepo/
 - **user_profiles** — Extended user profiles (avatar, bio, display name)
 - **user_invites** — Team invitation tokens with expiry
 - **audit_log** — Account-level audit trail (90-day retention)
+- **blog_subscribers** — Email newsletter subscribers (id, email, subscribed_at, source)
 
 ## API Routes
 
@@ -150,6 +151,15 @@ All routes under `/api/*`:
 - `POST /api/invites/:token/accept` — Accept invite (public)
 - `GET /api/audit-log` — Audit trail with filters (Admin+)
 - `GET /api/billing` — Billing & subscription info (Owner only)
+- `GET /api/blog/posts` — Blog post listing (paginated, category filter)
+- `GET /api/blog/posts/featured` — Featured blog post
+- `GET /api/blog/posts/sitemap` — Blog posts for sitemap
+- `GET /api/blog/posts/:slug` — Individual blog post with rendered HTML
+- `GET /api/blog/posts/:slug/related` — Related posts (same category)
+- `GET /api/blog/categories` — Available blog categories
+- `GET /api/blog/authors/:slug` — Author profile + posts
+- `POST /api/email/subscribe` — Blog email subscription
+- `GET /sitemap.xml` — Dynamic XML sitemap (includes published blog posts)
 
 ## Auth & Permissions
 
@@ -219,6 +229,10 @@ All routes under `/api/*`:
 21. `/settings/users` — Team directory + invite modal + pending invites table (Admin+)
 22. `/settings/billing` — Current plan, upgrade/downgrade, payment method, invoice history (Owner only)
 23. `/settings/audit` — Audit log table with search/action filters, 90-day retention (Admin+)
+24. `/blog` — Blog listing page with featured post, category filter tabs, post grid, pagination, email capture
+25. `/blog/[slug]` — Individual blog post with rendered markdown, table of contents, reading time, author card, related posts, CTA
+26. `/blog/[category]` — Category-filtered blog listing
+27. `/blog/author/[slug]` — Author profile with bio and post list
 
 ## SEO Infrastructure
 

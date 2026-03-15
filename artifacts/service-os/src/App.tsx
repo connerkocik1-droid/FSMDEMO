@@ -37,6 +37,18 @@ import BillingPage from "@/pages/settings/billing";
 import AuditLogPage from "@/pages/settings/audit";
 import PublicReview from "@/pages/public-review";
 import NotFound from "@/pages/not-found";
+import BlogList from "@/pages/blog/index";
+import BlogPost from "@/pages/blog/post";
+import AuthorPage from "@/pages/blog/author";
+
+const BLOG_CATEGORIES = ["dispatching", "invoicing", "growth", "industry-guides", "comparisons"];
+
+function BlogRouter({ params }: { params: { slug: string } }) {
+  if (BLOG_CATEGORIES.includes(params.slug)) {
+    return <BlogList />;
+  }
+  return <BlogPost />;
+}
 
 const queryClient = new QueryClient();
 
@@ -77,6 +89,10 @@ function AppRouter() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/review/:token" component={PublicReview} />
+
+      <Route path="/blog/author/:slug" component={AuthorPage} />
+      <Route path="/blog/:slug" component={BlogRouter} />
+      <Route path="/blog" component={BlogList} />
       
       <Route path="/:rest*">
         <MockSignedIn>

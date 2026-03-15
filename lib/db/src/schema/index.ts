@@ -24,3 +24,4 @@ export * from "./user_profiles";
 export * from "./user_invites";
 export * from "./audit_log";
 export * from "./demo_access_tokens";
+export * from "./blog_subscribers";
