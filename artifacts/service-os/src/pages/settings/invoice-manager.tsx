@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   FileText, Palette, Building2, Plus, Trash2, Send,
   Sparkles, Save, Check, Loader2,
   DollarSign, User, Wand2, AlignLeft, AlignCenter, AlignRight,
-  Type, Image as ImageIcon,
+  Type, Image as ImageIcon, Upload, X as XIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -107,6 +107,78 @@ const SAMPLE_ITEMS = [
   { description: "Refrigerant Recharge (2 lbs)", quantity: 2, unitPrice: 65 },
   { description: "Filter Replacement", quantity: 1, unitPrice: 35 },
 ];
+
+function LogoUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  function readFile(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = e => onChange((e.target?.result as string) || "");
+    reader.readAsDataURL(file);
+  }
+
+  function handleFiles(files: FileList | null) {
+    if (files && files[0]) readFile(files[0]);
+  }
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-3 p-3 bg-muted/40 border rounded-xl">
+        <img
+          src={value}
+          alt="Logo"
+          className="h-10 w-auto max-w-[120px] object-contain rounded-lg bg-white p-1 border"
+          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">Logo uploaded</p>
+          <p className="text-xs text-muted-foreground">PNG, JPG, or SVG</p>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
+            title="Replace logo"
+          >
+            <Upload className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onChange("")}
+            className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            title="Remove logo"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFiles(e.target.files)} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => fileRef.current?.click()}
+      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={e => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files); }}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all",
+        dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"
+      )}
+    >
+      <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+        <Upload className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-foreground">Click or drag to upload</p>
+        <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG, SVG — max 2MB</p>
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFiles(e.target.files)} />
+    </div>
+  );
+}
 
 function InvoicePreview({ tmpl }: { tmpl: Template }) {
   const font = FONT_OPTIONS.find(f => f.id === tmpl.fontFamily) || FONT_OPTIONS[0];
@@ -473,15 +545,11 @@ export default function InvoiceManager() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Logo URL</label>
-                    <input
-                      type="url"
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Logo</label>
+                    <LogoUpload
                       value={tmpl.logoUrl}
-                      onChange={e => setTmpl(t => ({ ...t, logoUrl: e.target.value }))}
-                      placeholder="https://…/logo.png"
-                      className={inputCls}
+                      onChange={url => setTmpl(t => ({ ...t, logoUrl: url }))}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG, or SVG</p>
                   </div>
                 </div>
 
