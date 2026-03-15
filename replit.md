@@ -35,6 +35,22 @@ ServiceOS is a full-stack pnpm monorepo.
 - **Design Approach**: The application features a clean, responsive design with role-differentiated dashboards and navigation. Marketing pages are distinct from the application's authenticated sections.
 - **Branding**: The primary brand color is `#185FA5` blue.
 
+### Subscription Tiers
+- **Free** ($0): 3 users, core ops only (no GPS, no SMS, no analytics)
+- **Independent** ($79/mo, $59/mo annual): 6 users + GPS, manual SMS, referral network, basic financials
+- **Pro** ($199/mo, $149/mo annual): 25 users + AI SMS, full analytics, limited support
+- **Franchise** ($449/mo, $329/mo annual): 75 operators + landing pages, multi-location, priority support, custom API
+- **Enterprise**: 200+ operators, custom pricing
+
+### Pricing & Checkout
+- `/pricing` — Dedicated pricing page with billing toggle, 5 tier cards, feature comparison matrix, switching math, FAQ, founding accounts section, guarantee row
+- `/checkout?tier=[tier]&billing=[monthly|annual]` — Stripe Elements checkout with FIRST30 coupon (50% off first invoice)
+- Stripe integration requires env vars: STRIPE_SECRET_KEY, VITE_STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_[TIER]_[BILLING], STRIPE_COUPON_FIRST30
+- Backend creates Stripe customer + subscription; tier upgrade only applies when subscription status is "active"
+- Demo page reads `?tier=` param to show interested-in context; `interestedIn` column in demo_requests table
+
+### Structure
+
 ### Technical Implementations
 - **Monorepo Management**: pnpm workspaces manage the full-stack monorepo.
 - **Backend Framework**: Express 5 for the API server.

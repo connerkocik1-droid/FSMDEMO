@@ -9,6 +9,8 @@ import { SEO } from "@/components/SEO";
 
 import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
+import Pricing from "@/pages/pricing";
+import Checkout from "@/pages/checkout";
 import Demo from "@/pages/demo";
 import DemoAccess from "@/pages/demo-access";
 import FeaturesOverview from "@/pages/features/index";
@@ -100,6 +102,18 @@ function AppRouter() {
         <DevAdminLayout><DevAdminIntegrations /></DevAdminLayout>
       </Route>
 
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/dev-admin" component={DevAdminLogin} />
+      <Route path="/dev-admin/scheduling">
+        <DevAdminLayout><DevAdminScheduling /></DevAdminLayout>
+      </Route>
+      <Route path="/dev-admin/accounts">
+        <DevAdminLayout><DevAdminAccounts /></DevAdminLayout>
+      </Route>
+      <Route path="/dev-admin/integrations">
+        <DevAdminLayout><DevAdminIntegrations /></DevAdminLayout>
+      </Route>
       <Route path="/demo" component={Demo} />
       <Route path="/demo-access/:token" component={DemoAccess} />
       <Route path="/features" component={FeaturesOverview} />

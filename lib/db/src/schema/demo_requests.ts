@@ -13,6 +13,7 @@ export const demoRequestsTable = pgTable("demo_requests", {
   teamSize: text("team_size"),
   message: text("message"),
   preferredSlot: text("preferred_slot"),
+  interestedIn: text("interested_in"),
   wantsRecorded: boolean("wants_recorded").notNull().default(false),
   wantsPrivate: boolean("wants_private").notNull().default(false),
   confirmationCode: text("confirmation_code").notNull(),

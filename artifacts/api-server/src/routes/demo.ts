@@ -88,9 +88,13 @@ router.get("/slots", async (_req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, companyName, businessType, teamSize, message, preferredSlot, wantsRecorded, wantsPrivate } = req.body;
+    const { firstName, lastName, email, phone, companyName, businessType, teamSize, message, preferredSlot, interestedIn, wantsRecorded, wantsPrivate } = req.body;
 
     const confirmationCode = `DEMO-${nanoid(8).toUpperCase()}`;
+
+    const tierLabel = interestedIn
+      ? interestedIn.charAt(0).toUpperCase() + interestedIn.slice(1)
+      : undefined;
 
     const [request] = await db.insert(demoRequestsTable).values({
       firstName,
@@ -102,11 +106,21 @@ router.post("/", async (req, res) => {
       teamSize,
       message,
       preferredSlot,
+      interestedIn: interestedIn || null,
       wantsRecorded: Boolean(wantsRecorded),
       wantsPrivate: Boolean(wantsPrivate),
       confirmationCode,
       status: "pending",
     }).returning();
+
+    const salesEmail = process.env.SALES_EMAIL;
+    if (salesEmail) {
+      console.log(
+        `[DEMO NOTIFICATION] New demo request from ${firstName} ${lastName} (${email})` +
+        (tierLabel ? ` — interested in ${tierLabel} plan` : "") +
+        ` — Confirmation: ${confirmationCode}`
+      );
+    }
 
     return res.status(201).json({
       id: request.id,

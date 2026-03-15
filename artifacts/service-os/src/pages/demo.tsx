@@ -2,12 +2,20 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { useSubmitDemoRequest, useGetDemoSlots } from "@workspace/api-client-react";
 import { Calendar, CheckCircle2, ChevronLeft, Video, Clock, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { SEO } from "@/components/SEO";
 import { trackDemoRequest } from "@/lib/analytics";
+
+const TIER_LABELS: Record<string, string> = {
+  free: "Free",
+  independent: "Independent",
+  pro: "Pro",
+  franchise: "Franchise",
+  enterprise: "Enterprise",
+};
 
 const demoSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -24,6 +32,11 @@ const demoSchema = z.object({
 type DemoFormData = z.infer<typeof demoSchema>;
 
 export default function Demo() {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const tierParam = params.get("tier") || "";
+  const tierLabel = TIER_LABELS[tierParam] || "";
+
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isBooked, setIsBooked] = useState(false);
@@ -37,7 +50,14 @@ export default function Demo() {
 
   const onSubmit = (data: DemoFormData) => {
     submitDemo(
-      { data: { ...data, wantsRecorded: false, wantsPrivate: false } },
+      {
+        data: {
+          ...data,
+          interestedIn: tierParam || undefined,
+          wantsRecorded: false,
+          wantsPrivate: false,
+        } as any,
+      },
       {
         onSuccess: () => {
           trackDemoRequest({ businessType: data.businessType, teamSize: data.teamSize });
@@ -74,6 +94,11 @@ export default function Demo() {
               <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
                 {step === 1 ? "See ServiceOS in action" : "You're all set!"}
               </h1>
+              {tierLabel && step === 1 && (
+                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                  Interested in the {tierLabel} plan
+                </div>
+              )}
               <p className="mt-4 text-xl text-muted-foreground leading-relaxed">
                 {step === 1 
                   ? "Discover how top field service businesses are automating their operations and scaling revenue."
