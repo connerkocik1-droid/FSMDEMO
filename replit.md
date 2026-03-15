@@ -63,17 +63,23 @@ artifacts-monorepo/
 │           │   ├── referrals.tsx    # Referral network (groups/marketplace/tracking)
 │           │   ├── analytics.tsx    # Full analytics with charts
 │           │   ├── gps.tsx          # Live GPS crew tracking
-│           │   └── settings/
-│           │       ├── demo-scheduler.tsx  # Demo admin (Owner only)
-│           │       ├── landing-pages.tsx   # Landing page builder (Franchise+)
-│           │       ├── locations.tsx       # Multi-location management (Franchise+)
-│           │       └── api-keys.tsx        # API key management (Franchise+)
+│           │   ├── settings/
+│           │   │   ├── landing-pages.tsx   # Landing page builder (Franchise+)
+│           │   │   ├── locations.tsx       # Multi-location management (Franchise+)
+│           │   │   └── api-keys.tsx        # API key management (Franchise+)
+│           │   └── dev-admin/             # Developer admin panel (/dev-admin)
+│           │       ├── login.tsx          # Dev admin login page
+│           │       ├── layout.tsx         # Admin panel shell with sidebar
+│           │       ├── scheduling.tsx     # Demo scheduling settings (moved from settings)
+│           │       ├── accounts.tsx       # Demo accounts & token management
+│           │       └── integrations.tsx   # Platform-level API integrations
 │           ├── components/
 │           │   ├── layout/Sidebar.tsx      # Nav with tier-gated lock icons
 │           │   ├── layout/DashboardLayout.tsx
 │           │   └── ProtectedRoute.tsx      # Route guards + UpgradeCard
 │           └── lib/
 │               ├── mock-auth.tsx           # Dev mock auth with RoleTierSwitcher
+│               ├── dev-admin-auth.tsx      # Dev admin JWT auth context
 │               └── permissions.ts          # Feature flag + role permission matrix
 ├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config

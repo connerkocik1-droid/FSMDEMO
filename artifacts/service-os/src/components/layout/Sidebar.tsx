@@ -17,7 +17,6 @@ import {
   Globe,
   Building,
   Key,
-  Calendar,
   UserCircle,
   CreditCard,
   ClipboardList,
@@ -96,7 +95,6 @@ const navGroups: NavGroupDef[] = [
   {
     label: "Settings",
     items: [
-      { name: "Demo Scheduler", href: "/settings/demo-scheduler", icon: Calendar, minRole: "owner" },
       { name: "Landing Pages", href: "/settings/landing-pages", icon: Globe, feature: "landing_pages", minRole: "owner" },
       { name: "Locations", href: "/settings/locations", icon: Building, feature: "multi_location", minRole: "owner" },
       { name: "API Keys", href: "/settings/api-keys", icon: Key, feature: "custom_api_access", minRole: "owner" },

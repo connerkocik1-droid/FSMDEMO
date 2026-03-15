@@ -2,6 +2,7 @@ import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { MockAuthProvider, MockSignedIn, MockSignedOut, RoleTierSwitcher } from "@/lib/mock-auth";
+import { DevAdminAuthProvider } from "@/lib/dev-admin-auth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SEO } from "@/components/SEO";
@@ -26,7 +27,6 @@ import Reviews from "@/pages/reviews";
 import Referrals from "@/pages/referrals";
 import Analytics from "@/pages/analytics";
 import GPS from "@/pages/gps";
-import DemoScheduler from "@/pages/settings/demo-scheduler";
 import LandingPages from "@/pages/settings/landing-pages";
 import Locations from "@/pages/settings/locations";
 import ApiKeys from "@/pages/settings/api-keys";
@@ -40,6 +40,11 @@ import NotFound from "@/pages/not-found";
 import BlogList from "@/pages/blog/index";
 import BlogPost from "@/pages/blog/post";
 import AuthorPage from "@/pages/blog/author";
+import DevAdminLogin from "@/pages/dev-admin/login";
+import DevAdminLayout from "@/pages/dev-admin/layout";
+import DevAdminScheduling from "@/pages/dev-admin/scheduling";
+import DevAdminAccounts from "@/pages/dev-admin/accounts";
+import DevAdminIntegrations from "@/pages/dev-admin/integrations";
 
 const BLOG_CATEGORIES = ["dispatching", "invoicing", "growth", "industry-guides", "comparisons"];
 
@@ -79,6 +84,17 @@ function AppRouter() {
         <MockSignedIn>
           <Redirect to="/dashboard" />
         </MockSignedIn>
+      </Route>
+
+      <Route path="/dev-admin" component={DevAdminLogin} />
+      <Route path="/dev-admin/scheduling">
+        <DevAdminLayout><DevAdminScheduling /></DevAdminLayout>
+      </Route>
+      <Route path="/dev-admin/accounts">
+        <DevAdminLayout><DevAdminAccounts /></DevAdminLayout>
+      </Route>
+      <Route path="/dev-admin/integrations">
+        <DevAdminLayout><DevAdminIntegrations /></DevAdminLayout>
       </Route>
 
       <Route path="/demo" component={Demo} />
@@ -187,12 +203,6 @@ function AppRouter() {
                 </ProtectedRoute>
               </Route>
 
-              <Route path="/settings/demo-scheduler">
-                <ProtectedRoute minRole="owner">
-                  <DemoScheduler />
-                </ProtectedRoute>
-              </Route>
-
               <Route path="/settings/landing-pages">
                 <ProtectedRoute requiredFeature="landing_pages" minRole="owner">
                   <LandingPages />
@@ -234,11 +244,13 @@ function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <MockAuthProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AppRouter />
-          </WouterRouter>
-        </MockAuthProvider>
+        <DevAdminAuthProvider>
+          <MockAuthProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <AppRouter />
+            </WouterRouter>
+          </MockAuthProvider>
+        </DevAdminAuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );

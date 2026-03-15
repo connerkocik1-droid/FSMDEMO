@@ -20,9 +20,11 @@ import auditRouter from "./audit.js";
 import billingRouter from "./billing.js";
 import blogRouter from "./blog.js";
 import emailSubscribeRouter from "./email-subscribe.js";
+import devAdminRouter from "./dev-admin.js";
 
 const router: IRouter = Router();
 
+router.use("/dev-admin", devAdminRouter);
 router.use(healthRouter);
 router.use("/auth", authRouter);
 router.use("/leads", leadsRouter);
