@@ -154,7 +154,10 @@ All routes under `/api/*`:
 - `RoleTierSwitcher` dev overlay in bottom-right corner for testing role/tier combos
 - Mock auth starts signed out; click "Sign In" to authenticate
 - Mock auth state persists in sessionStorage (survives page navigations)
-- `/login` page with 6 demo profile cards (signInAs flow)
+- `/login` page with two tabs: "Sign In" (email/password) and "Demo Access" (token-based)
+- Demo tokens: SERVICEOS-FREE, SERVICEOS-INDIE, SERVICEOS-PRO, SERVICEOS-FRANCHISE, SERVICEOS-ENTERPRISE
+- After token activation, shows 2 accounts: Admin (owner) + Operator (field tech) for that tier
+- Users can enter a token directly or request one by selecting a tier
 - DEMO_PROFILES exported from mock-auth.tsx
 
 ### Permission Matrix

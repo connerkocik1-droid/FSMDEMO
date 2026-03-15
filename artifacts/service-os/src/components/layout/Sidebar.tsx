@@ -94,16 +94,6 @@ const navGroups: NavGroupDef[] = [
     ]
   },
   {
-    label: "Account",
-    items: [
-      { name: "My Profile", href: "/settings/profile", icon: UserCircle },
-      { name: "Company", href: "/settings/company", icon: Building2, minRole: "admin" },
-      { name: "Team", href: "/settings/users", icon: Users, minRole: "admin" },
-      { name: "Billing", href: "/settings/billing", icon: CreditCard, minRole: "owner" },
-      { name: "Audit Log", href: "/settings/audit", icon: ClipboardList, minRole: "admin" },
-    ]
-  },
-  {
     label: "Settings",
     items: [
       { name: "Demo Scheduler", href: "/settings/demo-scheduler", icon: Calendar, minRole: "owner" },
