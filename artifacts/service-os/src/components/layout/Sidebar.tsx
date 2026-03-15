@@ -21,7 +21,8 @@ import {
   CreditCard,
   ClipboardList,
   Building2,
-  Sparkles
+  Sparkles,
+  Receipt,
 } from "lucide-react";
 import { useState } from "react";
 import { useMockAuth, MockUserButton } from "@/lib/mock-auth";
@@ -81,6 +82,7 @@ const navGroups: NavGroupDef[] = [
     label: "Reports",
     items: [
       { name: "Financials", operatorName: "My Earnings", href: "/financials", icon: WalletCards, feature: "basic_financials", operatorAlwaysShow: true },
+      { name: "Invoices", href: "/invoices", icon: Receipt, feature: "basic_financials", minRole: "admin" },
       { name: "Analytics", href: "/analytics", icon: LineChart, feature: "full_analytics", minRole: "admin" },
       { name: "Insights", href: "/insights", icon: Sparkles, feature: "full_analytics", minRole: "admin" },
     ]

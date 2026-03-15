@@ -6,7 +6,6 @@ import {
   ChevronRight, ExternalLink,
 } from "lucide-react";
 import { useMockAuth } from "@/lib/mock-auth";
-import InvoiceManager from "./invoice-manager";
 
 const TIERS = [
   { id: "free",        name: "Free",        monthly: 0,   annual: 0,    annualPerMonth: 0,   maxUsers: 3,   description: "For solo operators getting started" },
@@ -393,7 +392,6 @@ export default function Billing() {
         )}
       </div>
 
-      <InvoiceManager />
     </div>
   );
 }

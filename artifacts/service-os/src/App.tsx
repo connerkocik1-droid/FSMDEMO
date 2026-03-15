@@ -25,6 +25,7 @@ import Jobs from "@/pages/jobs";
 import DispatchBoard from "@/pages/dispatch";
 import SMSHub from "@/pages/sms";
 import Financials from "@/pages/financials";
+import InvoicesPage from "@/pages/reports/invoices";
 import Reviews from "@/pages/reviews";
 import Referrals from "@/pages/referrals";
 import Analytics from "@/pages/analytics";
@@ -167,6 +168,12 @@ function AppRouter() {
               <Route path="/financials">
                 <ProtectedRoute requiredFeature="basic_financials">
                   <Financials />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/invoices">
+                <ProtectedRoute requiredFeature="basic_financials" minRole="admin">
+                  <InvoicesPage />
                 </ProtectedRoute>
               </Route>
 
