@@ -4,6 +4,19 @@ import type { QuoteResponse, WizardStep, BillingPeriod } from "./types";
 import { QuoteCard } from "./QuoteCard";
 import { Sparkles, Loader2, Send } from "lucide-react";
 
+const PAIN_POINT_OPTIONS = [
+  { key: "no_gps", label: "Can't track crews" },
+  { key: "scheduling_dispatch", label: "Scheduling & dispatch" },
+  { key: "chasing_invoices", label: "Chasing invoices" },
+  { key: "slow_quoting", label: "Slow quoting & estimates" },
+  { key: "referrals", label: "Need more referrals" },
+  { key: "collecting_reviews", label: "Collecting reviews" },
+  { key: "sms_marketing", label: "SMS & marketing" },
+  { key: "tracking_hours", label: "Tracking hours" },
+  { key: "tech_updates", label: "Tech feels outdated" },
+  { key: "multiple_locations", label: "Multiple locations" },
+];
+
 const WIZARD_ADDONS = [
   { key: "gps_tracking", name: "GPS Tracking", description: "Real-time crew locations and route history", price: 5 },
   { key: "landing_page", name: "Landing Pages", description: "Custom booking pages for each service", price: 6 },
@@ -125,7 +138,7 @@ export function PricingWizard() {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [industry, setIndustry] = useState<string | null>(null);
   const [teamSize, setTeamSize] = useState<string | null>(null);
-  const [painPoints, setPainPoints] = useState<string>("");
+  const [painPoints, setPainPoints] = useState<string[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -180,17 +193,23 @@ export function PricingWizard() {
     scrollToBottom();
   }
 
+  function togglePainPoint(key: string) {
+    setPainPoints(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  }
+
   function toggleAddon(key: string) {
     setSelectedAddons(prev =>
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
     );
   }
 
-  async function handlePainPointsSubmit(text: string) {
-    setPainPoints(text);
-    addMessage("user", text);
+  async function handlePainPointsSubmit() {
+    const labels = PAIN_POINT_OPTIONS.filter(o => painPoints.includes(o.key)).map(o => o.label);
+    addMessage("user", labels.join(", "));
     setIsTyping(true);
-    trackEvent("wizard_step_completed", { step: 3, value: text });
+    trackEvent("wizard_step_completed", { step: 3, value: painPoints.join(",") });
     scrollToBottom();
     await new Promise(r => setTimeout(r, 600));
     setIsTyping(false);
@@ -242,7 +261,7 @@ export function PricingWizard() {
     setStep(0);
     setIndustry(null);
     setTeamSize(null);
-    setPainPoints("");
+    setPainPoints([]);
     setSelectedAddons([]);
     setQuote(null);
     setMessages([]);
@@ -302,10 +321,35 @@ export function PricingWizard() {
         )}
 
         {step === 2 && !isTyping && (
-          <ChatInput
-            placeholder="e.g. Scheduling crews, chasing invoices…"
-            onSubmit={handlePainPointsSubmit}
-          />
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {PAIN_POINT_OPTIONS.map(option => {
+                const isOn = painPoints.includes(option.key);
+                return (
+                  <button
+                    key={option.key}
+                    onClick={() => togglePainPoint(option.key)}
+                    className={cn(
+                      "px-3 py-2.5 rounded-xl border text-sm font-medium text-left transition-all",
+                      isOn
+                        ? "bg-primary/10 border-primary text-primary ring-1 ring-primary/30"
+                        : "bg-secondary/30 border-border text-foreground hover:border-primary/40 hover:bg-secondary/50"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            {painPoints.length > 0 && (
+              <button
+                onClick={handlePainPointsSubmit}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all animate-in fade-in duration-200"
+              >
+                Continue with {painPoints.length} selected
+              </button>
+            )}
+          </div>
         )}
 
         {step === 3 && !isTyping && (
