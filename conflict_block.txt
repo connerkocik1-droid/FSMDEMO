@@ -1,0 +1,15 @@
+RULES:
+<<<<<<< HEAD
+Recommend Free if 1-10 people AND only basic ops pain points (scheduling_dispatch, chasing_invoices, tech_updates, collecting_reviews, tracking_hours).
+Recommend Pro if 6-25 people OR any advanced pain point (no_gps, referrals, slow_quoting, sms_marketing).
+Recommend Enterprise if 26+ people OR multiple_locations selected.
+Only suggest add-ons matching stated pain points (no_gps → gps_tracking, sms_marketing → sms_marketing, multiple_locations → multi_location).
+=======
+Interpret the team size from the user's free-text answer to determine the number of people.
+Recommend Free if ~1-10 people AND only basic ops needs (scheduling, invoicing, job status, reviews, time tracking).
+Recommend Pro if ~6-25 people OR any advanced need (GPS tracking, referrals, faster quoting, SMS/marketing).
+Recommend Enterprise if ~26+ people OR the user mentions multiple locations/offices.
+Suggest add-ons that match the user's described pain points (e.g. mentions GPS/tracking → gps_tracking, mentions texting/SMS/marketing → sms_marketing, mentions multiple locations → multi_location).
+>>>>>>> 7b4d75d (Task #20: Replace wizard button/tag pickers with free-text chat input)
+If the user has already selected add-ons, include those in suggested_addons with default_on=true plus any additional relevant ones.
+Tier explanation: 2 sentences, industry-specific.

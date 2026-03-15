@@ -15,14 +15,15 @@ router.post("/quote", async (req, res) => {
   }
 
   let quote: Record<string, unknown>;
+  const addonsList = Array.isArray(selected_addons) && selected_addons.length > 0
+    ? selected_addons.join(", ")
+    : "None selected";
 
   try {
-    const addonsList = Array.isArray(selected_addons) && selected_addons.length > 0
-      ? selected_addons.join(", ")
-      : "None selected";
-    const userMessage = `Industry: ${industry || "Unknown"}
+    const painPointsText = Array.isArray(pain_points) ? pain_points.join(", ") : (pain_points || "None specified");
+    const userMessage = `Industry/business type: ${industry || "Unknown"}
 Team size: ${team_size || "Unknown"}
-Pain points: ${Array.isArray(pain_points) ? pain_points.join(", ") : pain_points || "None specified"}
+Pain points: ${painPointsText}
 User-selected add-ons: ${addonsList}`;
 
     const response = await openai.chat.completions.create({
@@ -66,7 +67,7 @@ User-selected add-ons: ${addonsList}`;
         .set({
           industry,
           teamSize: team_size,
-          painPoints: Array.isArray(pain_points) ? pain_points : [],
+          painPoints: Array.isArray(pain_points) ? pain_points : (typeof pain_points === "string" ? [pain_points] : []),
           recommendedTier: String(quote.recommended_tier ?? "pro"),
           quoteJson: quote,
           selectedAddons: defaultOnAddons,
@@ -79,7 +80,7 @@ User-selected add-ons: ${addonsList}`;
         sessionId: session_id,
         industry,
         teamSize: team_size,
-        painPoints: Array.isArray(pain_points) ? pain_points : [],
+        painPoints: Array.isArray(pain_points) ? pain_points : (typeof pain_points === "string" ? [pain_points] : []),
         recommendedTier: String(quote.recommended_tier ?? "pro"),
         quoteJson: quote,
         selectedAddons: defaultOnAddons,

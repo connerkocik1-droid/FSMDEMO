@@ -2,40 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { QuoteResponse, WizardStep, BillingPeriod } from "./types";
 import { QuoteCard } from "./QuoteCard";
-import { Sparkles, Loader2 } from "lucide-react";
-
-const INDUSTRIES = [
-  "Landscaping / Lawn care",
-  "HVAC",
-  "Roofing",
-  "Pest control",
-  "Cleaning services",
-  "Moving & hauling",
-  "Plumbing",
-  "Other home service",
-];
-
-const TEAM_SIZES = [
-  { label: "Just me (1)", value: "1" },
-  { label: "2–5 people", value: "2-5" },
-  { label: "6–10 people", value: "6-10" },
-  { label: "11–25 people", value: "11-25" },
-  { label: "26–50 people", value: "26-50" },
-  { label: "50+ people", value: "50+" },
-];
-
-const PAIN_POINTS = [
-  { key: "scheduling_dispatch", label: "Scheduling & dispatching crews" },
-  { key: "chasing_invoices", label: "Chasing unpaid invoices" },
-  { key: "tech_updates", label: "Techs not updating job status" },
-  { key: "no_gps", label: "No GPS visibility on crews" },
-  { key: "referrals", label: "Getting more referrals" },
-  { key: "multiple_locations", label: "Managing multiple locations" },
-  { key: "collecting_reviews", label: "Collecting reviews" },
-  { key: "slow_quoting", label: "Quoting takes too long" },
-  { key: "tracking_hours", label: "Tracking hours for payroll" },
-  { key: "sms_marketing", label: "Running SMS/marketing campaigns" },
-];
+import { Sparkles, Loader2, Send } from "lucide-react";
 
 const WIZARD_ADDONS = [
   { key: "gps_tracking", name: "GPS Tracking", description: "Real-time crew locations and route history", price: 14 },
@@ -98,6 +65,44 @@ function ChatMessage({ msg }: { msg: Message }) {
   );
 }
 
+function ChatInput({ placeholder, onSubmit, disabled }: { placeholder: string; onSubmit: (value: string) => void; disabled?: boolean }) {
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!disabled) inputRef.current?.focus();
+  }, [disabled]);
+
+  function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    const trimmed = value.trim();
+    if (!trimmed || disabled) return;
+    onSubmit(trimmed);
+    setValue("");
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="flex-1 px-4 py-2.5 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all disabled:opacity-50"
+      />
+      <button
+        type="submit"
+        disabled={!value.trim() || disabled}
+        className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+      >
+        <Send className="w-4 h-4" />
+      </button>
+    </form>
+  );
+}
+
 function ProgressDots({ step }: { step: WizardStep }) {
   const stepNum = step === 3 || step === "processing" || step === "quote" ? 4 : (step as number);
   return (
@@ -120,7 +125,7 @@ export function PricingWizard() {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [industry, setIndustry] = useState<string | null>(null);
   const [teamSize, setTeamSize] = useState<string | null>(null);
-  const [painPoints, setPainPoints] = useState<string[]>([]);
+  const [painPoints, setPainPoints] = useState<string>("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -175,23 +180,17 @@ export function PricingWizard() {
     scrollToBottom();
   }
 
-  function togglePainPoint(key: string) {
-    setPainPoints(prev =>
-      prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key]
-    );
-  }
-
   function toggleAddon(key: string) {
     setSelectedAddons(prev =>
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
     );
   }
 
-  async function handlePainPointsDone() {
-    const labels = PAIN_POINTS.filter(p => painPoints.includes(p.key)).map(p => p.label);
-    addMessage("user", labels.join(", "));
+  async function handlePainPointsSubmit(text: string) {
+    setPainPoints(text);
+    addMessage("user", text);
     setIsTyping(true);
-    trackEvent("wizard_step_completed", { step: 3, value: painPoints.join(",") });
+    trackEvent("wizard_step_completed", { step: 3, value: text });
     scrollToBottom();
     await new Promise(r => setTimeout(r, 600));
     setIsTyping(false);
@@ -243,7 +242,7 @@ export function PricingWizard() {
     setStep(0);
     setIndustry(null);
     setTeamSize(null);
-    setPainPoints([]);
+    setPainPoints("");
     setSelectedAddons([]);
     setQuote(null);
     setMessages([]);
@@ -289,60 +288,24 @@ export function PricingWizard() {
       {/* Input area */}
       <div className="px-5 pb-5 border-t pt-4">
         {step === 0 && !isTyping && (
-          <div className="grid grid-cols-2 gap-2">
-            {INDUSTRIES.map(ind => (
-              <button
-                key={ind}
-                onClick={() => handleIndustrySelect(ind)}
-                className="px-3 py-2.5 text-sm font-medium border rounded-xl hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-left leading-tight"
-              >
-                {ind}
-              </button>
-            ))}
-          </div>
+          <ChatInput
+            placeholder="e.g. Landscaping, HVAC, Plumbing…"
+            onSubmit={handleIndustrySelect}
+          />
         )}
 
         {step === 1 && !isTyping && (
-          <div className="grid grid-cols-2 gap-2">
-            {TEAM_SIZES.map(({ label, value }) => (
-              <button
-                key={value}
-                onClick={() => handleTeamSizeSelect(label)}
-                className="px-3 py-2.5 text-sm font-medium border rounded-xl hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-left"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <ChatInput
+            placeholder="e.g. Just me, 5, 20 people…"
+            onSubmit={handleTeamSizeSelect}
+          />
         )}
 
         {step === 2 && !isTyping && (
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {PAIN_POINTS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => togglePainPoint(key)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs font-semibold rounded-full border transition-all",
-                    painPoints.includes(key)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border hover:border-primary/50 hover:bg-primary/5"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {painPoints.length > 0 && (
-              <button
-                onClick={handlePainPointsDone}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all animate-in fade-in duration-200"
-              >
-                Next — pick add-ons
-              </button>
-            )}
-          </div>
+          <ChatInput
+            placeholder="e.g. Scheduling crews, chasing invoices…"
+            onSubmit={handlePainPointsSubmit}
+          />
         )}
 
         {step === 3 && !isTyping && (
