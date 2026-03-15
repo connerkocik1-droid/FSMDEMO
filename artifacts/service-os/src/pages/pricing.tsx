@@ -30,9 +30,10 @@ const TIERS = [
   {
     key: "independent",
     name: "Independent",
-    monthly: 79,
-    annualMonthly: 59,
-    annualTotal: 708,
+    monthly: 39,
+    annualMonthly: 29,
+    annualTotal: 348,
+    promoMonthly: 19,
     users: "Up to 6 users",
     tagline: "For solo operators & small crews",
     features: [
@@ -45,9 +46,10 @@ const TIERS = [
   {
     key: "pro",
     name: "Pro",
-    monthly: 199,
-    annualMonthly: 149,
-    annualTotal: 1788,
+    monthly: 119,
+    annualMonthly: 89,
+    annualTotal: 1068,
+    promoMonthly: 59,
     users: "Up to 25 users",
     tagline: "Scale with AI-powered automation",
     popular: true,
@@ -61,9 +63,10 @@ const TIERS = [
   {
     key: "franchise",
     name: "Franchise",
-    monthly: 449,
-    annualMonthly: 329,
-    annualTotal: 3948,
+    monthly: 349,
+    annualMonthly: 249,
+    annualTotal: 2988,
+    promoMonthly: 149,
     users: "Up to 75 users",
     tagline: "Multi-location management",
     features: [
@@ -161,7 +164,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Do you offer a free trial of paid plans?",
-    a: "We offer 50% off your first 30 days on all paid plans so you can try out the full feature set at a reduced cost.",
+    a: "We offer 50% off your first 3 months on all paid plans so you can try out the full feature set at a reduced cost.",
   },
   {
     q: "Can I get a demo before subscribing?",
@@ -217,21 +220,21 @@ const softwareAppSchema = {
     {
       "@type": "Offer",
       name: "Independent",
-      price: "79",
+      price: "39",
       priceCurrency: "USD",
       priceValidUntil: "2027-12-31",
     },
     {
       "@type": "Offer",
       name: "Pro",
-      price: "199",
+      price: "119",
       priceCurrency: "USD",
       priceValidUntil: "2027-12-31",
     },
     {
       "@type": "Offer",
       name: "Franchise",
-      price: "449",
+      price: "349",
       priceCurrency: "USD",
       priceValidUntil: "2027-12-31",
     },
@@ -334,6 +337,7 @@ export default function Pricing() {
               const isCustom = tier.monthly === null;
               const isFree = tier.monthly === 0;
               const price = billing === "annual" ? tier.annualMonthly : tier.monthly;
+              const promoPrice = (tier as any).promoMonthly as number | undefined;
 
               return (
                 <div
@@ -351,10 +355,10 @@ export default function Pricing() {
                     </div>
                   )}
 
-                  {!isFree && !isCustom && (
+                  {!isFree && !isCustom && promoPrice && billing === "monthly" && (
                     <div className="mb-3">
                       <span className="inline-block text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
-                        50% off your first 30 days
+                        ${promoPrice}/mo for first 3 months
                       </span>
                     </div>
                   )}
@@ -514,7 +518,7 @@ export default function Pricing() {
                 <p className="text-sm text-muted-foreground">All of the above and more</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-primary text-2xl">$199/mo</p>
+                <p className="font-bold text-primary text-2xl">$119/mo</p>
               </div>
             </div>
           </div>
