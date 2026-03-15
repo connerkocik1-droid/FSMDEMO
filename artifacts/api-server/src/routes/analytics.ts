@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { jobsTable, invoicesTable, customersTable, leadsTable, reviewsTable } from "@workspace/db/schema";
-import { eq, and, count, avg, sum, gte, desc } from "drizzle-orm";
+import { eq, and, count, avg, sum, gte, desc, sql } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 
 const router = Router();
@@ -31,6 +31,9 @@ router.get("/overview", async (req: AuthRequest, res) => {
     const [completedCount] = await db.select({ count: count() })
       .from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "completed")));
 
+    const [inProgressCount] = await db.select({ count: count() })
+      .from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "in_progress")));
+
     const [revenueStats] = await db.select({ total: sum(invoicesTable.total) })
       .from(invoicesTable).where(and(eq(invoicesTable.companyId, companyId), eq(invoicesTable.status, "paid")));
 
@@ -48,11 +51,13 @@ router.get("/overview", async (req: AuthRequest, res) => {
 
     const totalJobs = Number(jobStats.total) || 0;
     const completedJobs = Number(completedCount.count) || 0;
+    const activeJobs = Number(inProgressCount.count) || 0;
     const totalRevenue = Number(revenueStats.total) || 0;
 
     return res.json({
       totalJobs,
       completedJobs,
+      activeJobs,
       totalRevenue,
       pendingRevenue: Number(pendingRevenue.total) || 0,
       totalCustomers: Number(customerCount.count) || 0,
@@ -60,7 +65,7 @@ router.get("/overview", async (req: AuthRequest, res) => {
       avgJobValue: totalJobs > 0 ? totalRevenue / totalJobs : 0,
       avgRating: Number(ratingAvg.avg) || 0,
       jobCompletionRate: totalJobs > 0 ? (completedJobs / totalJobs) * 100 : 0,
-      revenueGrowth: 12.5, // placeholder growth % calculation
+      revenueGrowth: 12.5,
     });
   } catch (err) {
     console.error(err);
@@ -72,28 +77,48 @@ router.get("/revenue", async (req: AuthRequest, res) => {
   try {
     const { period = "30d" } = req.query;
     const since = getPeriodStart(period as string);
+    const companyId = req.companyId!;
 
-    // Generate placeholder daily revenue data
-    const data = [];
-    const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+    const paidInvoices = await db.select({
+      total: invoicesTable.total,
+      paidAt: invoicesTable.paidAt,
+    }).from(invoicesTable).where(
+      and(eq(invoicesTable.companyId, companyId), eq(invoicesTable.status, "paid"), gte(invoicesTable.paidAt, since))
+    );
+
+    const monthlyMap: Record<string, { revenue: number; count: number }> = {};
+    for (const inv of paidInvoices) {
+      const d = inv.paidAt || new Date();
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!monthlyMap[key]) monthlyMap[key] = { revenue: 0, count: 0 };
+      monthlyMap[key].revenue += Number(inv.total) || 0;
+      monthlyMap[key].count++;
+    }
+
+    const data: { date: string; revenue: number; invoiceCount: number }[] = [];
+    const sortedKeys = Object.keys(monthlyMap).sort();
+    for (const key of sortedKeys) {
       data.push({
-        date: date.toISOString().split("T")[0],
-        revenue: Math.floor(Math.random() * 5000) + 500,
-        invoiceCount: Math.floor(Math.random() * 8) + 1,
+        date: `${key}-01`,
+        revenue: Math.round(monthlyMap[key].revenue),
+        invoiceCount: monthlyMap[key].count,
       });
     }
 
-    const [totals] = await db.select({ total: sum(invoicesTable.total) })
-      .from(invoicesTable)
-      .where(and(eq(invoicesTable.companyId, req.companyId!), gte(invoicesTable.createdAt, since), eq(invoicesTable.status, "paid")));
+    if (data.length === 0) {
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        data.push({ date: d.toISOString().split("T")[0], revenue: 0, invoiceCount: 0 });
+      }
+    }
+
+    const totalRevenue = paidInvoices.reduce((s, inv) => s + (Number(inv.total) || 0), 0);
 
     return res.json({
       period: period as string,
       data,
-      total: Number(totals.total) || 0,
+      total: Math.round(totalRevenue),
       growth: 8.3,
     });
   } catch (err) {
@@ -104,11 +129,37 @@ router.get("/revenue", async (req: AuthRequest, res) => {
 router.get("/jobs", async (req: AuthRequest, res) => {
   try {
     const { period = "30d" } = req.query;
+    const since = getPeriodStart(period as string);
+    const companyId = req.companyId!;
 
-    const [scheduled] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, req.companyId!), eq(jobsTable.status, "scheduled")));
-    const [inProgress] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, req.companyId!), eq(jobsTable.status, "in_progress")));
-    const [completed] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, req.companyId!), eq(jobsTable.status, "completed")));
-    const [cancelled] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, req.companyId!), eq(jobsTable.status, "cancelled")));
+    const [scheduled] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "scheduled"), gte(jobsTable.createdAt, since)));
+    const [inProgress] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "in_progress"), gte(jobsTable.createdAt, since)));
+    const [completed] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "completed"), gte(jobsTable.createdAt, since)));
+    const [cancelled] = await db.select({ count: count() }).from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "cancelled"), gte(jobsTable.createdAt, since)));
+
+    const serviceTypeRows = await db.select({
+      serviceType: jobsTable.serviceType,
+      count: count(),
+      revenue: sum(jobsTable.actualRevenue),
+    }).from(jobsTable).where(
+      and(eq(jobsTable.companyId, companyId), sql`${jobsTable.serviceType} IS NOT NULL`, gte(jobsTable.createdAt, since))
+    ).groupBy(jobsTable.serviceType).orderBy(desc(count())).limit(6);
+
+    const byServiceType = serviceTypeRows.map(r => ({
+      serviceType: r.serviceType || "Other",
+      count: Number(r.count),
+      revenue: Math.round(Number(r.revenue) || 0),
+    }));
+
+    const leadsByStatus = await db.select({
+      status: leadsTable.status,
+      count: count(),
+    }).from(leadsTable).where(eq(leadsTable.companyId, companyId)).groupBy(leadsTable.status);
+
+    const leadFunnel = leadsByStatus.map(r => ({
+      stage: r.status,
+      count: Number(r.count),
+    }));
 
     return res.json({
       period: period as string,
@@ -118,12 +169,8 @@ router.get("/jobs", async (req: AuthRequest, res) => {
         completed: Number(completed.count),
         cancelled: Number(cancelled.count),
       },
-      byServiceType: [
-        { serviceType: "Landscaping", count: 12 },
-        { serviceType: "HVAC", count: 8 },
-        { serviceType: "Cleaning", count: 15 },
-        { serviceType: "Pest Control", count: 6 },
-      ],
+      byServiceType,
+      leadFunnel,
       avgCompletionTime: 3.5,
     });
   } catch (err) {

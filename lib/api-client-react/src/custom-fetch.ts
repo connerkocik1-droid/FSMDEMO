@@ -291,6 +291,18 @@ export async function customFetch<T = unknown>(
     }
   } catch {}
 
+  if (!headers.has("x-clerk-user-id")) {
+    try {
+      const profileStr = sessionStorage.getItem("mock_profile");
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile?.id) {
+          headers.set("x-clerk-user-id", `user_${profile.id}`);
+        }
+      }
+    } catch {}
+  }
+
   if (
     typeof init.body === "string" &&
     !headers.has("content-type") &&

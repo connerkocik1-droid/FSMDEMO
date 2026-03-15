@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { useGetAnalyticsOverview, useGetRevenueAnalytics } from "@workspace/api-client-react";
+import { useGetAnalyticsOverview, useGetRevenueAnalytics, useGetJobAnalytics } from "@workspace/api-client-react";
 import { BarChart3, TrendingUp, DollarSign, Users, Calendar, ArrowUpRight, ArrowDownRight, Briefcase, Clock, Star, Target } from "lucide-react";
 
 type Period = "7d" | "30d" | "90d" | "1y";
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function Analytics() {
   const [period, setPeriod] = useState<Period>("30d");
   const { data: overview } = useGetAnalyticsOverview({ period });
   const { data: revenue } = useGetRevenueAnalytics({ period });
+  const { data: jobAnalytics } = useGetJobAnalytics({ period });
 
   const metrics = [
     { label: "Total Revenue", value: revenue ? `$${revenue.total?.toLocaleString()}` : "$0", change: revenue?.growth ? `+${revenue.growth}%` : "—", up: true, icon: DollarSign, color: "text-green-500", bg: "bg-green-500/10" },
@@ -15,14 +18,25 @@ export default function Analytics() {
     { label: "New Leads", value: overview?.newLeads?.toString() || "0", change: "acquired", up: true, icon: Users, color: "text-purple-500", bg: "bg-purple-500/10" },
     { label: "Avg Job Rating", value: overview?.avgRating ? `${overview.avgRating.toFixed(1)}/5` : "—", change: "from reviews", up: true, icon: Star, color: "text-amber-500", bg: "bg-amber-500/10" },
     { label: "Revenue Growth", value: revenue?.growth ? `${revenue.growth}%` : "—", change: "vs last period", up: (revenue?.growth || 0) > 0, icon: TrendingUp, color: "text-green-500", bg: "bg-green-500/10" },
-    { label: "Active Jobs", value: overview?.activeJobs?.toString() || "0", change: "in progress", up: true, icon: Clock, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { label: "Active Jobs", value: overview?.activeJobs?.toString() || "0", change: `${overview?.jobCompletionRate?.toFixed(0) || 0}% completed`, up: true, icon: Clock, color: "text-orange-500", bg: "bg-orange-500/10" },
   ];
 
-  const revenueByMonth = [
-    { month: "Jan", value: 12400 }, { month: "Feb", value: 15200 }, { month: "Mar", value: 18100 },
-    { month: "Apr", value: 16800 }, { month: "May", value: 21300 }, { month: "Jun", value: 24500 },
-  ];
-  const maxRevenue = Math.max(...revenueByMonth.map(r => r.value));
+  const revenueData = (revenue?.data && revenue.data.length > 0)
+    ? revenue.data.map((d) => {
+        const month = d.date ? MONTH_NAMES[new Date(d.date).getMonth()] : "—";
+        return { month, value: d.revenue || 0 };
+      })
+    : [];
+  const maxRevenue = revenueData.length > 0 ? Math.max(...revenueData.map((r) => r.value), 1) : 1;
+
+  const topServices = jobAnalytics?.byServiceType || [];
+  const maxServiceRevenue = topServices.length > 0 ? Math.max(...topServices.map((s) => s.revenue || s.count), 1) : 1;
+
+  const leadFunnel = jobAnalytics?.leadFunnel || [];
+  const maxLeadCount = leadFunnel.length > 0 ? Math.max(...leadFunnel.map((s) => s.count), 1) : 1;
+  const funnelColors = ["bg-blue-500", "bg-amber-500", "bg-purple-500", "bg-green-500", "bg-emerald-500", "bg-red-400"];
+
+  const completionRate = overview?.jobCompletionRate || 0;
 
   return (
     <div className="space-y-6">
@@ -59,13 +73,15 @@ export default function Analytics() {
         <div className="bg-card rounded-2xl border p-6">
           <h3 className="font-bold text-foreground mb-6">Revenue Trend</h3>
           <div className="flex items-end gap-3 h-48">
-            {revenueByMonth.map((item, i) => (
+            {revenueData.length > 0 ? revenueData.map((item, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-2">
                 <span className="text-xs font-medium text-muted-foreground">${(item.value / 1000).toFixed(1)}k</span>
-                <div className="w-full rounded-t-lg bg-primary/80 hover:bg-primary transition-colors" style={{ height: `${(item.value / maxRevenue) * 100}%` }}></div>
+                <div className="w-full rounded-t-lg bg-primary/80 hover:bg-primary transition-colors" style={{ height: `${(item.value / maxRevenue) * 100}%`, minHeight: item.value > 0 ? "4px" : "0" }}></div>
                 <span className="text-xs text-muted-foreground">{item.month}</span>
               </div>
-            ))}
+            )) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">No revenue data yet</div>
+            )}
           </div>
         </div>
 
@@ -75,10 +91,10 @@ export default function Analytics() {
             <div className="relative w-40 h-40">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" className="text-secondary" strokeWidth="3" />
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" className="text-primary" strokeWidth="3" strokeDasharray="87, 100" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" className="text-primary" strokeWidth="3" strokeDasharray={`${completionRate}, 100`} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-foreground">87%</span>
+                <span className="text-3xl font-bold text-foreground">{completionRate.toFixed(0)}%</span>
                 <span className="text-xs text-muted-foreground">Completed</span>
               </div>
             </div>
@@ -88,47 +104,41 @@ export default function Analytics() {
         <div className="bg-card rounded-2xl border p-6">
           <h3 className="font-bold text-foreground mb-6">Top Services</h3>
           <div className="space-y-4">
-            {[
-              { service: "AC Repair", jobs: 24, revenue: 18400 },
-              { service: "Maintenance", jobs: 18, revenue: 12600 },
-              { service: "Installation", jobs: 12, revenue: 28800 },
-              { service: "Emergency Call", jobs: 8, revenue: 9200 },
-            ].map((s, i) => (
+            {topServices.length > 0 ? topServices.slice(0, 4).map((s, i) => (
               <div key={i} className="flex items-center gap-4">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{i + 1}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-foreground">{s.service}</span>
-                    <span className="text-sm font-bold text-foreground">${s.revenue.toLocaleString()}</span>
+                    <span className="text-sm font-semibold text-foreground">{s.serviceType}</span>
+                    <span className="text-sm font-bold text-foreground">{s.revenue ? `$${s.revenue.toLocaleString()}` : `${s.count} jobs`}</span>
                   </div>
                   <div className="w-full bg-secondary rounded-full h-2">
-                    <div className="bg-primary rounded-full h-2 transition-all" style={{ width: `${(s.revenue / 28800) * 100}%` }}></div>
+                    <div className="bg-primary rounded-full h-2 transition-all" style={{ width: `${((s.revenue || s.count) / maxServiceRevenue) * 100}%` }}></div>
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-muted-foreground text-sm text-center py-4">No service data yet</div>
+            )}
           </div>
         </div>
 
         <div className="bg-card rounded-2xl border p-6">
           <h3 className="font-bold text-foreground mb-6">Lead Conversion Funnel</h3>
           <div className="space-y-4">
-            {[
-              { stage: "New Leads", count: 120, width: "100%", color: "bg-blue-500" },
-              { stage: "Contacted", count: 85, width: "71%", color: "bg-amber-500" },
-              { stage: "Qualified", count: 52, width: "43%", color: "bg-purple-500" },
-              { stage: "Converted", count: 38, width: "32%", color: "bg-green-500" },
-            ].map((s, i) => (
+            {leadFunnel.length > 0 ? leadFunnel.map((s, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{s.stage}</span>
+                  <span className="text-sm font-medium text-foreground capitalize">{s.stage}</span>
                   <span className="text-sm font-bold text-foreground">{s.count}</span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-3">
-                  <div className={`${s.color} rounded-full h-3 transition-all`} style={{ width: s.width }}></div>
+                  <div className={`${funnelColors[i % funnelColors.length]} rounded-full h-3 transition-all`} style={{ width: `${(s.count / maxLeadCount) * 100}%` }}></div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-muted-foreground text-sm text-center py-4">No lead data yet</div>
+            )}
           </div>
         </div>
       </div>

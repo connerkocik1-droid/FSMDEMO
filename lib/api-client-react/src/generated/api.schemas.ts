@@ -641,6 +641,7 @@ export interface DemoSlotsResponse {
 export interface AnalyticsOverview {
   totalJobs: number;
   completedJobs: number;
+  activeJobs: number;
   totalRevenue: number;
   pendingRevenue: number;
   totalCustomers: number;
@@ -674,12 +675,19 @@ export type JobAnalyticsByStatus = {
 export type JobAnalyticsByServiceTypeItem = {
   serviceType: string;
   count: number;
+  revenue?: number;
+};
+
+export type JobAnalyticsLeadFunnelItem = {
+  stage: string;
+  count: number;
 };
 
 export interface JobAnalytics {
   period: string;
   byStatus: JobAnalyticsByStatus;
   byServiceType: JobAnalyticsByServiceTypeItem[];
+  leadFunnel?: JobAnalyticsLeadFunnelItem[];
   avgCompletionTime: number;
 }
 

@@ -1,4 +1,5 @@
 import app from "./app";
+import { seedDemoData } from "@workspace/db/seed";
 
 const rawPort = process.env["PORT"];
 
@@ -14,6 +15,12 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Server listening on port ${port}`);
+
+  try {
+    await seedDemoData();
+  } catch (err) {
+    console.error("Auto-seed failed (non-fatal):", err);
+  }
 });
