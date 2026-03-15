@@ -16,15 +16,15 @@ const TIER_INFO: Record<string, { name: string; monthly: number; annualMonthly: 
   enterprise: { name: "Enterprise", monthly: 129, annualMonthly: 108, annualTotal: 1296 },
 };
 
-const ADDON_INFO: Record<string, { name: string; price: number; unit: string }> = {
-  gps_tracking: { name: "GPS Tracking", price: 14, unit: "/mo" },
-  landing_page: { name: "Landing Pages", price: 14, unit: "/mo per page" },
-  sms_marketing: { name: "SMS Campaigns", price: 14, unit: "/mo" },
-  live_chat: { name: "Live Chat", price: 19, unit: "/mo" },
-  background_check: { name: "Background Checks", price: 9, unit: "/check" },
+const ADDON_INFO: Record<string, { name: string; price: number; unit: string; isOneTime?: boolean }> = {
+  gps_tracking: { name: "GPS Tracking", price: 5, unit: "/mo" },
+  landing_page: { name: "Landing Pages", price: 6, unit: "/mo per page" },
+  sms_marketing: { name: "SMS Campaigns", price: 6, unit: "/mo" },
+  live_chat: { name: "Live Chat", price: 14, unit: "/mo" },
+  background_check: { name: "Background Checks", price: 9, unit: "/check", isOneTime: true },
   multi_location: { name: "Multi-Location", price: 49, unit: "/mo" },
-  custom_reports: { name: "Custom Reports", price: 19, unit: "/mo" },
-  white_label: { name: "White Label", price: 49, unit: "/mo" },
+  custom_reports: { name: "Custom Reports", price: 6, unit: "/mo" },
+  white_label: { name: "White Label", price: 49, unit: " one-time", isOneTime: true },
 };
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -162,8 +162,18 @@ export default function Checkout() {
 
   const isAnnual = billingPeriod === "annual";
   const monthlyEquivalent = isAnnual ? tierInfo.annualMonthly : tierInfo.monthly;
-  const addonMonthly = selectedAddons.reduce((sum, k) => sum + (ADDON_INFO[k]?.price ?? 0), 0);
-  const invoiceAmount = (isAnnual ? tierInfo.annualTotal : tierInfo.monthly) + addonMonthly;
+  const addonMonthly = selectedAddons.reduce((sum, k) => {
+    const info = ADDON_INFO[k];
+    if (!info || info.isOneTime) return sum;
+    return sum + info.price;
+  }, 0);
+  const addonOneTime = selectedAddons.reduce((sum, k) => {
+    const info = ADDON_INFO[k];
+    if (!info || !info.isOneTime) return sum;
+    return sum + info.price;
+  }, 0);
+  const recurringAmount = (isAnnual ? tierInfo.annualTotal : tierInfo.monthly) + addonMonthly;
+  const invoiceAmount = recurringAmount + addonOneTime;
   const discountedInvoice = Math.max(Math.round(invoiceAmount * 0.5), 0);
 
   return (
@@ -215,10 +225,16 @@ export default function Checkout() {
                     </div>
                   );
                 })}
-                {selectedAddons.length > 0 && (
+                {addonMonthly > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Add-on subtotal</span>
+                    <span className="text-muted-foreground">Recurring add-on subtotal</span>
                     <span className="text-muted-foreground">+${addonMonthly}/mo</span>
+                  </div>
+                )}
+                {addonOneTime > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">One-time add-on subtotal</span>
+                    <span className="text-muted-foreground">+${addonOneTime}</span>
                   </div>
                 )}
                 <div className="border-t pt-3">
@@ -271,7 +287,7 @@ export default function Checkout() {
                 <CheckoutForm
                   tier={tier}
                   billingPeriod={billingPeriod}
-                  price={invoiceAmount}
+                  price={recurringAmount}
                   discountedPrice={discountedInvoice}
                 />
               </Elements>

@@ -5,14 +5,14 @@ import { QuoteCard } from "./QuoteCard";
 import { Sparkles, Loader2, Send } from "lucide-react";
 
 const WIZARD_ADDONS = [
-  { key: "gps_tracking", name: "GPS Tracking", description: "Real-time crew locations and route history", price: 14 },
-  { key: "landing_page", name: "Landing Pages", description: "Custom booking pages for each service", price: 14 },
-  { key: "sms_marketing", name: "SMS Campaigns", description: "Automated text marketing and follow-ups", price: 14 },
-  { key: "live_chat", name: "Live Chat", description: "Website chat widget with AI-assisted replies", price: 19 },
+  { key: "gps_tracking", name: "GPS Tracking", description: "Real-time crew locations and route history", price: 5 },
+  { key: "landing_page", name: "Landing Pages", description: "Custom booking pages for each service", price: 6 },
+  { key: "sms_marketing", name: "SMS Campaigns", description: "Automated text marketing and follow-ups", price: 6 },
+  { key: "live_chat", name: "Live Chat", description: "Website chat widget with AI-assisted replies", price: 14 },
   { key: "background_check", name: "Background Checks", description: "Instant employee screening reports", price: 9 },
   { key: "multi_location", name: "Multi-Location", description: "Manage multiple offices or territories", price: 49 },
-  { key: "custom_reports", name: "Custom Reports", description: "Build your own dashboards and exports", price: 19 },
-  { key: "white_label", name: "White Label", description: "Your branding, your domain, your app", price: 49 },
+  { key: "custom_reports", name: "Custom Reports", description: "Build your own dashboards and exports", price: 6 },
+  { key: "white_label", name: "White Label", description: "Your branding, your domain, your app", price: 49, isOneTime: true },
 ];
 
 interface Message {
@@ -194,7 +194,7 @@ export function PricingWizard() {
     scrollToBottom();
     await new Promise(r => setTimeout(r, 600));
     setIsTyping(false);
-    addMessage("ai", "Last step! Would you like to add any extras to your plan? Each one is billed monthly — pick as many as you like, or skip ahead.");
+    addMessage("ai", "Last step! Would you like to add any extras to your plan? Pick as many as you like, or skip ahead.");
     setStep(3);
     scrollToBottom();
   }
@@ -337,7 +337,7 @@ export function PricingWizard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-foreground">{addon.name}</span>
-                        <span className="text-sm font-bold text-foreground shrink-0 ml-2">${addon.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
+                        <span className="text-sm font-bold text-foreground shrink-0 ml-2">${addon.price}<span className="text-xs font-normal text-muted-foreground">{addon.isOneTime ? " one-time" : "/mo"}</span></span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
                     </div>

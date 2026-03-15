@@ -17,17 +17,17 @@ const PRICES = {
 };
 
 const ADDON_CARDS = [
-  { key: "gps",       icon: MapPin,       name: "GPS Tracking",       price: 14, unit: "/mo",         desc: "Live location tracking for every field tech" },
-  { key: "landing",   icon: Radio,        name: "Landing Pages",      price: 14, unit: "/mo per page", desc: "Convert search traffic with branded local pages" },
-  { key: "sms",       icon: MessageSquare,name: "SMS Campaigns",      price: 14, unit: "/mo",         desc: "Bulk outreach to your customer list" },
-  { key: "chat",      icon: MessageSquare,name: "Live Chat",          price: 19, unit: "/mo",         desc: "Real-time chat on your booking site" },
+  { key: "gps",       icon: MapPin,       name: "GPS Tracking",       price: 5, unit: "/mo",         desc: "Live location tracking for every field tech" },
+  { key: "landing",   icon: Radio,        name: "Landing Pages",      price: 6, unit: "/mo per page", desc: "Convert search traffic with branded local pages" },
+  { key: "sms",       icon: MessageSquare,name: "SMS Campaigns",      price: 6, unit: "/mo",         desc: "Bulk outreach to your customer list" },
+  { key: "chat",      icon: MessageSquare,name: "Live Chat",          price: 14, unit: "/mo",         desc: "Real-time chat on your booking site" },
   { key: "bgcheck",   icon: ShieldCheck,  name: "Background Checks",  price: 9,  unit: "/check",      desc: "Instant verified background checks for new hires" },
 ];
 
 const ENTERPRISE_UNLOCKS = [
   { key: "multi",    icon: Building2,     name: "Multi-Location",   price: 49,  unit: "/mo per location", desc: "Manage unlimited locations from one dashboard" },
-  { key: "reports",  icon: FileBarChart2, name: "Custom Reports",   price: 19,  unit: "/mo",              desc: "Build, save, and export any business report" },
-  { key: "wl",       icon: Paintbrush,    name: "White Label",      price: 49,  unit: "/mo",              desc: "Remove ServiceOS branding from client portals" },
+  { key: "reports",  icon: FileBarChart2, name: "Custom Reports",   price: 6,  unit: "/mo",              desc: "Build, save, and export any business report" },
+  { key: "wl",       icon: Paintbrush,    name: "White Label",      price: 49,  unit: " one-time",         desc: "Remove ServiceOS branding from client portals" },
   { key: "onboard",  icon: Calendar,      name: "Onboarding Call",  price: 59,  unit: " one-time",        desc: "1-on-1 setup session with a ServiceOS specialist" },
 ];
 

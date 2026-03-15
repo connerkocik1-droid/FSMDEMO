@@ -22,14 +22,14 @@ interface AddonConfig {
 }
 
 const ADDONS: AddonConfig[] = [
-  { key: "gps",        name: "GPS Tracking",       description: "Live location tracking for every field technician on the map.", price: 14, unit: "/mo",             icon: MapPin,        category: "standard" },
-  { key: "landing",    name: "Landing Pages",       description: "Create custom SEO-optimized landing pages per service area.",  price: 14, unit: "/mo per page",    icon: Radio,         category: "standard" },
-  { key: "sms_mkt",   name: "SMS Campaigns",       description: "Send bulk SMS to your customer list for promotions & reminders.", price: 14, unit: "/mo",           icon: MessageSquare, category: "standard" },
-  { key: "live_chat",  name: "Live Chat",           description: "Add a real-time chat widget to your customer-facing pages.",  price: 19, unit: "/mo",             icon: MessageSquare, category: "standard" },
+  { key: "gps",        name: "GPS Tracking",       description: "Live location tracking for every field technician on the map.", price: 5, unit: "/mo",             icon: MapPin,        category: "standard" },
+  { key: "landing",    name: "Landing Pages",       description: "Create custom SEO-optimized landing pages per service area.",  price: 6, unit: "/mo per page",    icon: Radio,         category: "standard" },
+  { key: "sms_mkt",   name: "SMS Campaigns",       description: "Send bulk SMS to your customer list for promotions & reminders.", price: 6, unit: "/mo",           icon: MessageSquare, category: "standard" },
+  { key: "live_chat",  name: "Live Chat",           description: "Add a real-time chat widget to your customer-facing pages.",  price: 14, unit: "/mo",             icon: MessageSquare, category: "standard" },
   { key: "bg_check",   name: "Background Checks",   description: "Run instant background checks on new hires — $9 per check.", price: 9,  unit: "/check",           icon: ShieldCheck,   category: "standard", isPayPerUse: true },
-  { key: "reports",    name: "Custom Reports",      description: "Build, save, and export any report with drag-and-drop.",      price: 19, unit: "/mo",             icon: FileBarChart2, category: "enterprise" },
+  { key: "reports",    name: "Custom Reports",      description: "Build, save, and export any report with drag-and-drop.",      price: 6, unit: "/mo",             icon: FileBarChart2, category: "enterprise" },
   { key: "multi_loc",  name: "Multi-Location",      description: "Manage multiple business locations from one dashboard.",      price: 49, unit: "/mo per location", icon: Building2,     category: "enterprise" },
-  { key: "white_label",name: "White Label",         description: "Remove all ServiceOS branding from client-facing portals.",   price: 49, unit: "/mo",             icon: Paintbrush,    category: "enterprise" },
+  { key: "white_label",name: "White Label",         description: "Remove all ServiceOS branding from client-facing portals.",   price: 49, unit: " one-time",        icon: Paintbrush,    category: "enterprise", isPayPerUse: true },
   { key: "onboarding", name: "Onboarding Session",  description: "1-on-1 setup call with a ServiceOS specialist.",             price: 59, unit: " one-time",        icon: Calendar,      category: "enterprise", isPayPerUse: true },
 ];
 
@@ -43,6 +43,7 @@ export default function AddOnsSettings() {
   const [toggling, setToggling] = useState<AddonKey | null>(null);
   const [bgCheckModal, setBgCheckModal] = useState(false);
   const [onboardingModal, setOnboardingModal] = useState(false);
+  const [whiteLabelModal, setWhiteLabelModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   function showToast(msg: string) {
@@ -76,6 +77,16 @@ export default function AddOnsSettings() {
   async function bookOnboarding() {
     setOnboardingModal(false);
     showToast("Onboarding session booked! $59 charged. Check your email.");
+  }
+
+  async function purchaseWhiteLabel() {
+    setWhiteLabelModal(false);
+    setActiveAddons(prev => {
+      const next = new Set(prev);
+      next.add("white_label");
+      return next;
+    });
+    showToast("White Label activated! $49 one-time charge applied.");
   }
 
   const totalMonthlyCost = Array.from(activeAddons).reduce((sum, key) => {
@@ -164,7 +175,7 @@ export default function AddOnsSettings() {
               isEnterprise={isEnterprise}
               isFree={tier === "free"}
               toggling={toggling === addon.key}
-              onToggle={() => addon.key === "onboarding" ? setOnboardingModal(true) : toggleAddon(addon.key)}
+              onToggle={() => addon.key === "onboarding" ? setOnboardingModal(true) : addon.key === "white_label" ? (!activeAddons.has("white_label") && setWhiteLabelModal(true)) : toggleAddon(addon.key)}
               onOnboarding={() => setOnboardingModal(true)}
             />
           ))}
@@ -267,6 +278,34 @@ export default function AddOnsSettings() {
           </div>
         </div>
       )}
+
+      {/* White Label Modal */}
+      {whiteLabelModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setWhiteLabelModal(false)}>
+          <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Paintbrush className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-bold text-foreground">Activate White Label</p>
+                <p className="text-sm text-muted-foreground">$49.00 one-time</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5">
+              Remove all ServiceOS branding from your client-facing portals. Your logo, your colors, your domain. A $49 one-time charge applies.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={purchaseWhiteLabel} className="flex-1 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 justify-center">
+                Activate — $49 <ExternalLink className="w-4 h-4" />
+              </button>
+              <button onClick={() => setWhiteLabelModal(false)} className="px-4 py-2.5 border rounded-xl text-foreground hover:bg-secondary transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -338,7 +377,7 @@ function AddonCard({
                     : "bg-blue-600 text-white hover:bg-blue-700"
                 )}
               >
-                {addon.key === "onboarding" ? "Book now — $59" : "Use it — $9"}
+                {addon.key === "onboarding" ? "Book now — $59" : addon.key === "white_label" ? "Activate — $49" : "Use it — $9"}
               </button>
             ) : (
               <button
