@@ -37,6 +37,17 @@ const PAIN_POINTS = [
   { key: "sms_marketing", label: "Running SMS/marketing campaigns" },
 ];
 
+const WIZARD_ADDONS = [
+  { key: "gps_tracking", name: "GPS Tracking", description: "Real-time crew locations and route history", price: 14 },
+  { key: "landing_page", name: "Landing Pages", description: "Custom booking pages for each service", price: 14 },
+  { key: "sms_marketing", name: "SMS Campaigns", description: "Automated text marketing and follow-ups", price: 14 },
+  { key: "live_chat", name: "Live Chat", description: "Website chat widget with AI-assisted replies", price: 19 },
+  { key: "background_check", name: "Background Checks", description: "Instant employee screening reports", price: 9 },
+  { key: "multi_location", name: "Multi-Location", description: "Manage multiple offices or territories", price: 49 },
+  { key: "custom_reports", name: "Custom Reports", description: "Build your own dashboards and exports", price: 19 },
+  { key: "white_label", name: "White Label", description: "Your branding, your domain, your app", price: 49 },
+];
+
 interface Message {
   id: string;
   role: "ai" | "user";
@@ -88,10 +99,10 @@ function ChatMessage({ msg }: { msg: Message }) {
 }
 
 function ProgressDots({ step }: { step: WizardStep }) {
-  const stepNum = step === "processing" || step === "quote" ? 3 : (step as number);
+  const stepNum = step === "processing" || step === "quote" ? 4 : (step as number);
   return (
     <div className="flex items-center gap-1.5">
-      {[0, 1, 2].map(i => (
+      {[0, 1, 2, 3].map(i => (
         <div
           key={i}
           className={cn(
@@ -110,6 +121,7 @@ export function PricingWizard() {
   const [industry, setIndustry] = useState<string | null>(null);
   const [teamSize, setTeamSize] = useState<string | null>(null);
   const [painPoints, setPainPoints] = useState<string[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -169,11 +181,34 @@ export function PricingWizard() {
     );
   }
 
-  async function handleDone() {
+  function toggleAddon(key: string) {
+    setSelectedAddons(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  }
+
+  async function handlePainPointsDone() {
     const labels = PAIN_POINTS.filter(p => painPoints.includes(p.key)).map(p => p.label);
     addMessage("user", labels.join(", "));
-    addMessage("ai", "Perfect — let me put your personalised quote together...");
+    setIsTyping(true);
     trackEvent("wizard_step_completed", { step: 3, value: painPoints.join(",") });
+    scrollToBottom();
+    await new Promise(r => setTimeout(r, 600));
+    setIsTyping(false);
+    addMessage("ai", "Last step! Would you like to add any extras to your plan? Each one is billed monthly — pick as many as you like, or skip ahead.");
+    setStep(3);
+    scrollToBottom();
+  }
+
+  async function handleAddonsSubmit() {
+    if (selectedAddons.length > 0) {
+      const addonLabels = WIZARD_ADDONS.filter(a => selectedAddons.includes(a.key)).map(a => a.name);
+      addMessage("user", addonLabels.join(", "));
+    } else {
+      addMessage("user", "No add-ons for now");
+    }
+    addMessage("ai", "Perfect — let me put your personalised quote together...");
+    trackEvent("wizard_step_completed", { step: 4, value: selectedAddons.join(",") });
     setStep("processing");
     setIsTyping(true);
     scrollToBottom();
@@ -187,6 +222,7 @@ export function PricingWizard() {
           industry,
           team_size: teamSize,
           pain_points: painPoints,
+          selected_addons: selectedAddons,
         }),
       }).then(r => r.json()).catch(() => null),
       new Promise(r => setTimeout(r, 1500)),
@@ -208,6 +244,7 @@ export function PricingWizard() {
     setIndustry(null);
     setTeamSize(null);
     setPainPoints([]);
+    setSelectedAddons([]);
     setQuote(null);
     setMessages([]);
     setIsTyping(true);
@@ -299,12 +336,60 @@ export function PricingWizard() {
             </div>
             {painPoints.length > 0 && (
               <button
-                onClick={handleDone}
+                onClick={handlePainPointsDone}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all animate-in fade-in duration-200"
               >
-                Done — build my quote ✨
+                Next — pick add-ons
               </button>
             )}
+          </div>
+        )}
+
+        {step === 3 && !isTyping && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-2">
+              {WIZARD_ADDONS.map(addon => {
+                const isOn = selectedAddons.includes(addon.key);
+                return (
+                  <button
+                    key={addon.key}
+                    onClick={() => toggleAddon(addon.key)}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl border text-left transition-all",
+                      isOn
+                        ? "bg-primary/5 border-primary ring-1 ring-primary/30"
+                        : "bg-secondary/30 border-border hover:border-primary/40 hover:bg-secondary/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
+                      isOn ? "bg-primary border-primary" : "border-muted-foreground/30"
+                    )}>
+                      {isOn && (
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 6l3 3 5-5" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-foreground">{addon.name}</span>
+                        <span className="text-sm font-bold text-foreground shrink-0 ml-2">${addon.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{addon.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={handleAddonsSubmit}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all animate-in fade-in duration-200"
+            >
+              {selectedAddons.length > 0
+                ? `Build my quote with ${selectedAddons.length} add-on${selectedAddons.length > 1 ? "s" : ""}`
+                : "Skip — build my quote"}
+            </button>
           </div>
         )}
 
@@ -320,6 +405,7 @@ export function PricingWizard() {
             quote={quote}
             sessionId={sessionId}
             onStartOver={handleStartOver}
+            initialAddonKeys={selectedAddons}
           />
         )}
       </div>

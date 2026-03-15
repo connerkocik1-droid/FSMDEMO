@@ -8,7 +8,7 @@ import { WIZARD_SYSTEM_PROMPT, WIZARD_FALLBACK_QUOTE } from "../prompts/wizardPr
 const router = Router();
 
 router.post("/quote", async (req, res) => {
-  const { session_id, industry, team_size, pain_points } = req.body;
+  const { session_id, industry, team_size, pain_points, selected_addons } = req.body;
 
   if (!session_id) {
     return res.status(400).json({ error: "session_id required" });
@@ -17,9 +17,13 @@ router.post("/quote", async (req, res) => {
   let quote: Record<string, unknown>;
 
   try {
+    const addonsList = Array.isArray(selected_addons) && selected_addons.length > 0
+      ? selected_addons.join(", ")
+      : "None selected";
     const userMessage = `Industry: ${industry || "Unknown"}
 Team size: ${team_size || "Unknown"}
-Pain points: ${Array.isArray(pain_points) ? pain_points.join(", ") : pain_points || "None specified"}`;
+Pain points: ${Array.isArray(pain_points) ? pain_points.join(", ") : pain_points || "None specified"}
+User-selected add-ons: ${addonsList}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5-mini",

@@ -11,6 +11,7 @@ interface QuoteCardProps {
   quote: QuoteResponse;
   sessionId: string;
   onStartOver: () => void;
+  initialAddonKeys?: string[];
 }
 
 function calcTotal(quote: QuoteResponse, addonStates: Record<string, boolean>, billingPeriod: BillingPeriod): number {
@@ -46,11 +47,14 @@ const TIER_COLORS = {
 };
 const TIER_LABELS = { free: "Free", pro: "Pro", enterprise: "Enterprise" };
 
-export function QuoteCard({ quote, sessionId, onStartOver }: QuoteCardProps) {
+export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = [] }: QuoteCardProps) {
   const [, navigate] = useLocation();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const [addonStates, setAddonStates] = useState<Record<string, boolean>>(
-    Object.fromEntries(quote.suggested_addons.map(a => [a.addon_key, a.default_on]))
+    Object.fromEntries(quote.suggested_addons.map(a => [
+      a.addon_key,
+      initialAddonKeys.length > 0 ? initialAddonKeys.includes(a.addon_key) : a.default_on,
+    ]))
   );
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [email, setEmail] = useState("");

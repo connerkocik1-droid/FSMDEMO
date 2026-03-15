@@ -18,6 +18,7 @@ Recommend Free if 1-10 people AND only basic ops pain points (scheduling_dispatc
 Recommend Pro if 6-25 people OR any advanced pain point (no_gps, referrals, slow_quoting, sms_marketing).
 Recommend Enterprise if 26+ people OR multiple_locations selected.
 Only suggest add-ons matching stated pain points (no_gps → gps_tracking, sms_marketing → sms_marketing, multiple_locations → multi_location).
+If the user has already selected add-ons, include those in suggested_addons with default_on=true plus any additional relevant ones.
 Tier explanation: 2 sentences, industry-specific.
 Headline: punchy, include industry + savings figure vs competitor.
 
