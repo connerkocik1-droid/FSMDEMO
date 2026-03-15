@@ -27,21 +27,17 @@ import { SEO } from "@/components/SEO";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { trackDemoRequest } from "@/lib/analytics";
 
-const TIERS = ["Free", "Independent", "Pro", "Franchise", "Enterprise"];
+const TIERS = ["Free", "Pro", "Enterprise"];
 
 const TIER_DESCRIPTIONS: Record<string, string> = {
-  Free: "Core operations, basic scheduling, and manual invoicing for small teams.",
-  Independent: "GPS tracking, manual SMS, and referral network access for growing businesses.",
-  Pro: "AI SMS workflows, full analytics, automated reviews, and priority support.",
-  Franchise: "Landing page builder, multi-location routing, and custom API access.",
-  Enterprise: "Custom integrations, dedicated success manager, and custom SLA.",
+  Free: "Core operations, basic scheduling, and manual invoicing for small teams — up to 10 users.",
+  Pro: "AI SMS workflows, full analytics, automated reviews, and priority support for up to 25 users. Add-ons available for GPS tracking, SMS campaigns, and more.",
+  Enterprise: "Multi-location management, custom API & integrations, dedicated account manager, SLA guarantees, and all add-ons included for 50+ users.",
 };
 
 const TIER_COLORS: Record<string, string> = {
   Free: "from-gray-500 to-gray-600",
-  Independent: "from-blue-500 to-blue-600",
   Pro: "from-violet-500 to-violet-600",
-  Franchise: "from-amber-500 to-amber-600",
   Enterprise: "from-emerald-500 to-emerald-600",
 };
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import type { Role, Tier } from "./permissions";
-import { canAccess, hasPermission, isAtLeastRole } from "./permissions";
+import type { Role, Tier, AddonType } from "./permissions";
+import { canAccess, hasPermission, isAtLeastRole, ADDON_PRICES } from "./permissions";
 import type { Feature, Permission } from "./permissions";
 
 export interface DemoProfile {
@@ -14,6 +14,7 @@ export interface DemoProfile {
   tagline: string;
   unlocked: string[];
   locked: string[];
+  addons: AddonType[];
 }
 
 export const DEMO_PROFILES: DemoProfile[] = [
@@ -28,6 +29,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
     tagline: "Getting started — 10 user cap",
     unlocked: ["10 users included", "Core scheduling & dispatch", "Basic invoicing & quotes", "CRM & customer management"],
     locked: ["AI SMS workflows", "Full analytics", "GPS tracking", "Add-ons"],
+    addons: [],
   },
   {
     id: "pro_owner",
@@ -38,8 +40,9 @@ export const DEMO_PROFILES: DemoProfile[] = [
     role: "owner",
     tier: "pro",
     tagline: "Growing team, full automation",
-    unlocked: ["25 users included", "AI SMS & auto-responses", "Full analytics", "Recurring jobs", "Priority support"],
+    unlocked: ["25 users included", "AI SMS & auto-responses", "Full analytics", "Recurring jobs", "Priority support", "GPS Tracking (add-on)", "SMS Campaigns (add-on)"],
     locked: ["Multi-location (add-on)", "White label (add-on)", "Custom API"],
+    addons: ["gps_tracking", "sms_marketing"],
   },
   {
     id: "enterprise_owner",
@@ -52,6 +55,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
     tagline: "Enterprise-scale operations",
     unlocked: ["50 users per location", "3 locations included", "All add-ons included free", "Custom API & integrations", "Dedicated account manager"],
     locked: [],
+    addons: ["gps_tracking", "landing_page", "sms_marketing", "live_chat", "background_check", "custom_reports", "multi_location", "white_label", "onboarding_session"],
   },
   {
     id: "field_tech",
@@ -64,6 +68,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
     tagline: "Field technician view",
     unlocked: ["My job queue", "SMS check-in", "Job completion reports"],
     locked: ["Financials", "CRM & Leads", "Analytics", "Dispatch board"],
+    addons: ["gps_tracking", "sms_marketing"],
   },
 ];
 
@@ -86,6 +91,7 @@ interface AuthContextType {
   user: MockUser | null;
   role: Role;
   tier: Tier;
+  addons: AddonType[];
   companyId: number | null;
   activeProfileId: string | null;
   isDemoSession: boolean;
@@ -94,6 +100,7 @@ interface AuthContextType {
   signOut: () => void;
   setRole: (role: Role) => void;
   setTier: (tier: Tier) => void;
+  setAddons: (addons: AddonType[]) => void;
   setDemoSession: (value: boolean) => void;
   endDemoSession: () => void;
   canAccessFeature: (feature: Feature) => boolean;
@@ -110,6 +117,9 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role>(() => {
     try { return (sessionStorage.getItem("mock_role") as Role) || "owner"; } catch { return "owner"; }
   });
+  const [addons, setAddons] = useState<AddonType[]>(() => {
+    try { const s = sessionStorage.getItem("mock_addons"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
   const [tier, setTier] = useState<Tier>(() => {
     try { return (sessionStorage.getItem("mock_tier") as Tier) || "pro"; } catch { return "pro"; }
   });
@@ -125,15 +135,17 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem("mock_signed_in", String(isSignedIn));
       sessionStorage.setItem("mock_role", role);
       sessionStorage.setItem("mock_tier", tier);
+      sessionStorage.setItem("mock_addons", JSON.stringify(addons));
       sessionStorage.setItem("is_demo_session", String(isDemoSession));
       if (activeProfile) sessionStorage.setItem("mock_profile", JSON.stringify(activeProfile));
       else sessionStorage.removeItem("mock_profile");
     } catch {}
-  }, [isSignedIn, role, tier, activeProfile, isDemoSession]);
+  }, [isSignedIn, role, tier, addons, activeProfile, isDemoSession]);
 
   const signIn = useCallback(() => {
     setRole("owner");
     setTier("pro");
+    setAddons([]);
     setActiveProfile(null);
     setIsSignedIn(true);
   }, []);
@@ -141,6 +153,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const signInAs = useCallback((profile: DemoProfile) => {
     setRole(profile.role);
     setTier(profile.tier);
+    setAddons(profile.addons);
     setActiveProfile(profile);
     setIsSignedIn(true);
   }, []);
@@ -177,6 +190,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         user: currentUser,
         role,
         tier,
+        addons,
         companyId: isSignedIn ? 1 : null,
         activeProfileId: activeProfile?.id ?? null,
         isDemoSession,
@@ -185,9 +199,10 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         setRole,
         setTier,
+        setAddons,
         setDemoSession: setIsDemoSession,
         endDemoSession,
-        canAccessFeature: (feature: Feature) => canAccess(feature, tier),
+        canAccessFeature: (feature: Feature) => canAccess(feature, tier, addons.map(a => ({ addonType: a, isActive: true }))),
         hasPermission: (permission: Permission) => hasPermission(role, permission),
         isAtLeastRole: (requiredRole: Role) => isAtLeastRole(role, requiredRole),
       }}
@@ -236,13 +251,26 @@ export function MockUserButton() {
   );
 }
 
+const ALL_ADDON_TYPES: AddonType[] = [
+  "gps_tracking", "landing_page", "sms_marketing", "live_chat",
+  "background_check", "custom_reports", "multi_location", "white_label", "onboarding_session",
+];
+
 export function RoleTierSwitcher() {
-  const { role, tier, setRole, setTier } = useMockAuth();
+  const { role, tier, addons, setRole, setTier, setAddons } = useMockAuth();
   const roles: Role[] = ["owner", "admin", "manager", "operator"];
   const tiers: Tier[] = ["free", "pro", "enterprise"];
 
+  const toggleAddon = (addon: AddonType) => {
+    setAddons(
+      addons.includes(addon)
+        ? addons.filter(a => a !== addon)
+        : [...addons, addon]
+    );
+  };
+
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-2 text-xs">
+    <div className="fixed bottom-4 right-4 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-2 text-xs max-h-[80vh] overflow-y-auto">
       <p className="font-semibold text-muted-foreground uppercase tracking-wider">Dev Controls</p>
       <div className="flex items-center gap-2">
         <label className="text-muted-foreground">Role:</label>
@@ -263,6 +291,22 @@ export function RoleTierSwitcher() {
         >
           {tiers.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
+      </div>
+      <div className="border-t border-border pt-2 mt-2">
+        <p className="font-semibold text-muted-foreground uppercase tracking-wider mb-1">Add-ons</p>
+        <div className="space-y-1">
+          {ALL_ADDON_TYPES.map(addon => (
+            <label key={addon} className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={addons.includes(addon)}
+                onChange={() => toggleAddon(addon)}
+                className="rounded border-border"
+              />
+              <span className="text-foreground">{ADDON_PRICES[addon].name}</span>
+            </label>
+          ))}
+        </div>
       </div>
     </div>
   );

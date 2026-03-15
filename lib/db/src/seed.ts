@@ -11,6 +11,7 @@ import {
   referralsTable,
   liveDemoSessionsTable,
   tierVideosTable,
+  companyAddonsTable,
 } from "./schema";
 
 function daysAgo(n: number): Date {
@@ -63,7 +64,7 @@ const DEMO_COMPANIES: DemoCompanyConfig[] = [
     city: "Austin",
     state: "TX",
     zip: "78701",
-    maxUsers: 3,
+    maxUsers: 10,
     serviceTypes: ["Lawn Mowing", "Edging & Trimming", "Leaf Cleanup", "Seasonal Cleanup"],
     users: [
       { clerkId: "user_free_owner", email: "sam@samplelawn.com", firstName: "Sam", lastName: "Rivera", role: "owner" },
@@ -74,29 +75,6 @@ const DEMO_COMPANIES: DemoCompanyConfig[] = [
     leadCount: 5,
     reviewCount: 4,
     referralCount: 2,
-  },
-  {
-    name: "Brooks Roofing",
-    businessType: "Roofing",
-    tier: "independent",
-    email: "taylor@brooksroofing.com",
-    phone: "(555) 200-0002",
-    address: "220 Summit Dr",
-    city: "Denver",
-    state: "CO",
-    zip: "80202",
-    maxUsers: 6,
-    serviceTypes: ["Roof Inspection", "Shingle Repair", "Gutter Install", "Leak Repair", "Full Roof Replacement"],
-    users: [
-      { clerkId: "user_independent_owner", email: "taylor@brooksroofing.com", firstName: "Taylor", lastName: "Brooks", role: "owner" },
-      { clerkId: "user_independent_tech1", email: "devon@brooksroofing.com", firstName: "Devon", lastName: "Clark", role: "operator" },
-      { clerkId: "user_independent_admin", email: "pat@brooksroofing.com", firstName: "Pat", lastName: "Nguyen", role: "admin" },
-    ],
-    customerCount: 12,
-    jobCount: 20,
-    leadCount: 8,
-    reviewCount: 6,
-    referralCount: 3,
   },
   {
     name: "Lee HVAC Services",
@@ -123,31 +101,6 @@ const DEMO_COMPANIES: DemoCompanyConfig[] = [
     leadCount: 15,
     reviewCount: 12,
     referralCount: 6,
-  },
-  {
-    name: "Morgan Lawn Network",
-    businessType: "Lawn Care",
-    tier: "franchise",
-    email: "casey@morganlawn.net",
-    phone: "(555) 400-0004",
-    address: "1500 Franchise Pkwy",
-    city: "Orlando",
-    state: "FL",
-    zip: "32801",
-    maxUsers: 75,
-    serviceTypes: ["Full Lawn Service", "Irrigation Install", "Landscape Design", "Tree Trimming", "Sod Installation", "Fertilization", "Pest Treatment"],
-    users: [
-      { clerkId: "user_franchise_owner", email: "casey@morganlawn.net", firstName: "Casey", lastName: "Morgan", role: "owner" },
-      { clerkId: "user_franchise_admin", email: "nina@morganlawn.net", firstName: "Nina", lastName: "Torres", role: "admin" },
-      { clerkId: "user_franchise_mgr", email: "ben@morganlawn.net", firstName: "Ben", lastName: "Harper", role: "manager" },
-      { clerkId: "user_franchise_tech1", email: "luis@morganlawn.net", firstName: "Luis", lastName: "Gonzalez", role: "operator" },
-      { clerkId: "user_franchise_tech2", email: "kira@morganlawn.net", firstName: "Kira", lastName: "Yamamoto", role: "operator" },
-    ],
-    customerCount: 18,
-    jobCount: 35,
-    leadCount: 12,
-    reviewCount: 10,
-    referralCount: 5,
   },
   {
     name: "Chen Field Services Group",
@@ -446,6 +399,7 @@ export async function seedDemoData() {
 
   await seedLiveDemoSessions();
   await seedTierVideos();
+  await seedCompanyAddons();
 
   console.log("🌱 Demo data seeding complete!");
 }
@@ -499,31 +453,54 @@ async function seedTierVideos() {
     {
       tierName: "Free",
       videoUrl: null,
-      description: "Core operations overview: basic scheduling, manual invoicing, and team management for up to 3 users.",
-    },
-    {
-      tierName: "Independent",
-      videoUrl: null,
-      description: "Live GPS tracking, manual SMS communication, and referral network access for growing teams up to 6 users.",
+      description: "Core operations overview: basic scheduling, manual invoicing, and team management for up to 10 users.",
     },
     {
       tierName: "Pro",
       videoUrl: null,
-      description: "AI-powered SMS workflows, full analytics dashboard, automated review collection, and priority support for teams up to 25.",
-    },
-    {
-      tierName: "Franchise",
-      videoUrl: null,
-      description: "Landing page builder, multi-location routing, custom API access, and dedicated success manager for up to 75 users.",
+      description: "AI-powered SMS workflows, full analytics dashboard, automated review collection, and priority support for teams up to 25. Add-ons available for GPS tracking, SMS campaigns, and more.",
     },
     {
       tierName: "Enterprise",
       videoUrl: null,
-      description: "Custom integrations, dedicated success manager, custom SLA, and enterprise-grade security for 75+ users.",
+      description: "Multi-location management, custom API & integrations, dedicated account manager, SLA guarantees, and all add-ons included for 50+ users.",
     },
   ]);
 
   console.log("  ✓ Seeded tier video placeholders");
+}
+
+async function seedCompanyAddons() {
+  const existing = await db.select().from(companyAddonsTable).limit(1);
+  if (existing.length > 0) return;
+
+  const companies = await db.select().from(companiesTable);
+  const proCompany = companies.find(c => c.tier === "pro");
+  const enterpriseCompany = companies.find(c => c.tier === "enterprise");
+
+  if (proCompany) {
+    await db.insert(companyAddonsTable).values([
+      { companyId: proCompany.id, addonType: "gps_tracking", isActive: true, quantity: 1 },
+      { companyId: proCompany.id, addonType: "sms_marketing", isActive: true, quantity: 1 },
+    ]);
+    console.log(`  ✓ Seeded add-ons for "${proCompany.name}" (GPS Tracking, SMS Campaigns)`);
+  }
+
+  if (enterpriseCompany) {
+    const allAddons = [
+      "gps_tracking", "landing_page", "sms_marketing", "live_chat",
+      "background_check", "custom_reports", "multi_location", "white_label", "onboarding_session",
+    ];
+    await db.insert(companyAddonsTable).values(
+      allAddons.map(addonType => ({
+        companyId: enterpriseCompany.id,
+        addonType,
+        isActive: true,
+        quantity: 1,
+      }))
+    );
+    console.log(`  ✓ Seeded all add-ons for "${enterpriseCompany.name}"`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
