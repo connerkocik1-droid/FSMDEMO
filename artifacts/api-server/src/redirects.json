@@ -1,0 +1,6 @@
+[
+  { "from": "/home", "to": "/" },
+  { "from": "/sign-up", "to": "/signup" },
+  { "from": "/sign-in", "to": "/login" },
+  { "from": "/pricing-plans", "to": "/pricing" }
+]

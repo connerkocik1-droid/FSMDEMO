@@ -198,6 +198,22 @@ All routes under `/api/*`:
 22. `/settings/billing` — Current plan, upgrade/downgrade, payment method, invoice history (Owner only)
 23. `/settings/audit` — Audit log table with search/action filters, 90-day retention (Admin+)
 
+## SEO Infrastructure
+
+- **SEO Component**: `src/components/SEO.tsx` — Reusable component rendering title, meta description, canonical, OG, Twitter Card, noIndex, and JSON-LD schema via `react-helmet-async`
+- **HelmetProvider**: App root wrapped in `<HelmetProvider>` in `App.tsx`
+- **Schema Helpers**: `src/lib/schema.ts` — `softwareAppSchema()`, `faqSchema(faqs)`, `articleSchema(post)`, `offerSchema(tier, price)`
+- **Analytics**: `src/lib/analytics.ts` — GA4 init via `initGA4()`, `trackEvent`, `trackDemoRequest`, `trackSignup`, `trackPricingView`, `trackComparisonView`
+- **Cloudinary**: `src/lib/cloudinary.ts` — `cloudinaryWebP(url, width?)` for WebP transforms
+- **OG Image**: `public/og-default.png` (1200×630, #185FA5 blue with white "ServiceOS" text)
+- **Sitemap**: `/sitemap.xml` served from Express (all static routes + dynamic blog discovery)
+- **Robots.txt**: `/robots.txt` with allow/disallow rules, references sitemap
+- **Redirects**: `api-server/src/redirects.json` → 301 redirects loaded before all routes (`/home`→`/`, `/sign-up`→`/signup`, `/sign-in`→`/login`, `/pricing-plans`→`/pricing`)
+- **404 Page**: Custom branded 404 with navigation links (Home, Pricing, Book a Demo, Blog) and `noIndex`
+- **noIndex**: All authenticated app pages (dashboard, settings, etc.) have `noIndex={true}` applied via SEO component in the app shell
+- **Performance**: Preconnect headers for fonts/Cloudinary/GA in `index.html`, lazy loading utilities available
+- **GA4**: Loads via `VITE_GA4_MEASUREMENT_ID` env var; does not load when unset
+
 ## Third-Party Integrations
 
 To fully activate features, set these environment variables:
@@ -208,6 +224,8 @@ To fully activate features, set these environment variables:
 - `RESEND_API_KEY`, `RESEND_SENDER_EMAIL` — Email delivery
 - `VITE_DEMO_VIDEO_URL` — Recorded demo video link
 - `VITE_DEMO_CALENDAR_URL` — External calendar link
+- `VITE_GA4_MEASUREMENT_ID` — Google Analytics 4 tracking (e.g. G-XXXXXXXXXX)
+- `VITE_PUBLIC_DOMAIN` — Public domain for sitemap/robots.txt (defaults to https://serviceos.com)
 
 ## Development
 

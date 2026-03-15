@@ -10,7 +10,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.get("/", requireRole("owner", "admin"), async (req: AuthRequest, res) => {
+router.get("/", async (req: AuthRequest, res) => {
   try {
     if (!req.companyId) {
       return res.status(403).json({ error: "forbidden", message: "Company required" });
@@ -64,22 +64,14 @@ router.patch("/:id/role", requireRole("owner"), async (req: AuthRequest, res) =>
       return res.status(400).json({ error: "validation_error", message: "Cannot change your own role" });
     }
 
-    const [existing] = await db.select({ role: usersTable.role })
-      .from(usersTable)
-      .where(and(eq(usersTable.id, userId), eq(usersTable.companyId, req.companyId)))
-      .limit(1);
-
-    if (!existing) {
-      return res.status(404).json({ error: "not_found" });
-    }
-
-    const previousRole = existing.role;
-
-
     const [updated] = await db.update(usersTable)
       .set({ role, updatedAt: new Date() })
       .where(and(eq(usersTable.id, userId), eq(usersTable.companyId, req.companyId)))
       .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "not_found" });
+    }
 
     await logAudit({
       companyId: req.companyId,
@@ -87,7 +79,7 @@ router.patch("/:id/role", requireRole("owner"), async (req: AuthRequest, res) =>
       action: "user_role_changed",
       entityType: "user",
       entityId: userId,
-      metadata: { newRole: role, previousRole },
+      metadata: { newRole: role, previousRole: updated.role },
     });
 
     return res.json(updated);

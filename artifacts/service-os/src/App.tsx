@@ -1,8 +1,10 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
 import { MockAuthProvider, MockSignedIn, MockSignedOut, RoleTierSwitcher } from "@/lib/mock-auth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { SEO } from "@/components/SEO";
 
 import Landing from "@/pages/landing";
 import DemoLogin from "@/pages/login";
@@ -28,6 +30,7 @@ import UserProfile from "@/pages/settings/profile";
 import BillingPage from "@/pages/settings/billing";
 import AuditLogPage from "@/pages/settings/audit";
 import PublicReview from "@/pages/public-review";
+import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +68,7 @@ function AppRouter() {
       
       <Route path="/:rest*">
         <MockSignedIn>
+          <SEO noIndex={true} />
           <DashboardLayout>
             <Switch>
               <Route path="/dashboard" component={Dashboard} />
@@ -184,9 +188,7 @@ function AppRouter() {
               </Route>
 
               <Route>
-                <div className="text-center py-20">
-                  <h2 className="text-2xl font-bold">404 - Page Not Found</h2>
-                </div>
+                <NotFound />
               </Route>
             </Switch>
           </DashboardLayout>
@@ -202,13 +204,15 @@ function AppRouter() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MockAuthProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <AppRouter />
-        </WouterRouter>
-      </MockAuthProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <MockAuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AppRouter />
+          </WouterRouter>
+        </MockAuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 }
 
