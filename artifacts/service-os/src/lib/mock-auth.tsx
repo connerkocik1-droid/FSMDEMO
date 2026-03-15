@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { Role, Tier } from "./permissions";
 import { canAccess, hasPermission, isAtLeastRole } from "./permissions";
 import type { Feature, Permission } from "./permissions";
@@ -125,10 +125,28 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [role, setRole] = useState<Role>("owner");
-  const [tier, setTier] = useState<Tier>("pro");
-  const [activeProfile, setActiveProfile] = useState<DemoProfile | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(() => {
+    try { return sessionStorage.getItem("mock_signed_in") === "true"; } catch { return false; }
+  });
+  const [role, setRole] = useState<Role>(() => {
+    try { return (sessionStorage.getItem("mock_role") as Role) || "owner"; } catch { return "owner"; }
+  });
+  const [tier, setTier] = useState<Tier>(() => {
+    try { return (sessionStorage.getItem("mock_tier") as Tier) || "pro"; } catch { return "pro"; }
+  });
+  const [activeProfile, setActiveProfile] = useState<DemoProfile | null>(() => {
+    try { const s = sessionStorage.getItem("mock_profile"); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("mock_signed_in", String(isSignedIn));
+      sessionStorage.setItem("mock_role", role);
+      sessionStorage.setItem("mock_tier", tier);
+      if (activeProfile) sessionStorage.setItem("mock_profile", JSON.stringify(activeProfile));
+      else sessionStorage.removeItem("mock_profile");
+    } catch {}
+  }, [isSignedIn, role, tier, activeProfile]);
 
   const signIn = useCallback(() => {
     setRole("owner");
@@ -147,6 +165,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(() => {
     setIsSignedIn(false);
     setActiveProfile(null);
+    try { sessionStorage.clear(); } catch {}
   }, []);
 
   const currentUser: MockUser | null = isSignedIn ? {

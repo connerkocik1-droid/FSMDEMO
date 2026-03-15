@@ -85,7 +85,7 @@ artifacts-monorepo/
 └── package.json
 ```
 
-## Database Schema Tables (21 total)
+## Database Schema Tables (25 total)
 
 - **companies** — Company accounts with tier, Stripe IDs, feature flags
 - **users** — Users with Clerk ID, role, and company FK
@@ -109,6 +109,10 @@ artifacts-monorepo/
 - **api_keys** — API key management (Franchise+)
 - **support_tickets** — Support ticket system
 - **locations** — Multi-location management (Franchise+)
+- **company_settings** — Company-level preferences (timezone, currency, branding)
+- **user_profiles** — Extended user profiles (avatar, bio, display name)
+- **user_invites** — Team invitation tokens with expiry
+- **audit_log** — Account-level audit trail (90-day retention)
 
 ## API Routes
 
@@ -129,6 +133,19 @@ All routes under `/api/*`:
 - `POST /api/demo/hosts`, `PATCH /api/demo/hosts/:hostId`
 - `GET /api/emails` — Email log (Admin+)
 - `GET /api/analytics/overview|revenue|jobs`
+- `GET/PATCH /api/company/profile` — Company info
+- `GET/PATCH /api/company/settings` — Company preferences (timezone, currency, branding)
+- `GET /api/users` — Team directory (Admin+)
+- `PATCH /api/users/:id/role` — Change role (Owner only)
+- `PATCH /api/users/:id/deactivate` — Deactivate/reactivate user (Owner only)
+- `POST /api/users/invite` — Send team invite (Admin+)
+- `DELETE /api/users/invite/:inviteId` — Cancel invite
+- `POST /api/users/invite/:inviteId/resend` — Resend invite
+- `GET/PATCH /api/users/profile` — Personal profile
+- `GET /api/invites/:token` — View invite details (public)
+- `POST /api/invites/:token/accept` — Accept invite (public)
+- `GET /api/audit-log` — Audit trail with filters (Admin+)
+- `GET /api/billing` — Billing & subscription info (Owner only)
 
 ## Auth & Permissions
 
@@ -136,6 +153,9 @@ All routes under `/api/*`:
 - `useMockAuth()` hook exposes `role`, `tier`, `canAccessFeature()`, `hasPermission()`, `isAtLeastRole()`
 - `RoleTierSwitcher` dev overlay in bottom-right corner for testing role/tier combos
 - Mock auth starts signed out; click "Sign In" to authenticate
+- Mock auth state persists in sessionStorage (survives page navigations)
+- `/login` page with 6 demo profile cards (signInAs flow)
+- DEMO_PROFILES exported from mock-auth.tsx
 
 ### Permission Matrix
 - `canAccess(feature, tier)` — Feature flag check against tier hierarchy
@@ -168,6 +188,12 @@ All routes under `/api/*`:
 15. `/settings/landing-pages` — Landing page builder (Franchise+)
 16. `/settings/locations` — Multi-location management with operator cap enforcement
 17. `/settings/api-keys` — API key management (Franchise+)
+18. `/login` — Demo profile picker (6 cards, signInAs flow)
+19. `/settings/profile` — Personal profile editor (name, email, phone, bio, avatar, password)
+20. `/settings/company` — Company profile + branding + regional settings + notification prefs (Admin+)
+21. `/settings/users` — Team directory + invite modal + pending invites table (Admin+)
+22. `/settings/billing` — Current plan, upgrade/downgrade, payment method, invoice history (Owner only)
+23. `/settings/audit` — Audit log table with search/action filters, 90-day retention (Admin+)
 
 ## Third-Party Integrations
 

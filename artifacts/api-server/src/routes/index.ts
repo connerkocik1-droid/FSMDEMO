@@ -13,6 +13,11 @@ import analyticsRouter from "./analytics.js";
 import emailsRouter from "./emails.js";
 import locationsRouter from "./locations.js";
 import apiKeysRouter from "./api-keys.js";
+import companyRouter from "./company.js";
+import usersRouter from "./users.js";
+import invitesRouter from "./invites.js";
+import auditRouter from "./audit.js";
+import billingRouter from "./billing.js";
 
 const router: IRouter = Router();
 
@@ -31,5 +36,10 @@ router.use("/analytics", analyticsRouter);
 router.use("/emails", emailsRouter);
 router.use("/locations", locationsRouter);
 router.use("/api-keys", apiKeysRouter);
+router.use("/company", companyRouter);
+router.use("/users", usersRouter);
+router.use("/invites", invitesRouter);
+router.use("/audit-log", auditRouter);
+router.use("/billing", billingRouter);
 
 export default router;

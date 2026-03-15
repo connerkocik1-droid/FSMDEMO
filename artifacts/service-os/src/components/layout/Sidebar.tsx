@@ -17,7 +17,11 @@ import {
   Globe,
   Building,
   Key,
-  Calendar
+  Calendar,
+  UserCircle,
+  CreditCard,
+  ClipboardList,
+  Building2
 } from "lucide-react";
 import { useState } from "react";
 import { useMockAuth, MockUserButton } from "@/lib/mock-auth";
@@ -67,6 +71,16 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { name: "Financials", href: "/financials", icon: WalletCards, feature: "basic_financials" },
       { name: "Analytics", href: "/analytics", icon: LineChart, feature: "full_analytics" },
+    ]
+  },
+  {
+    label: "Account",
+    items: [
+      { name: "My Profile", href: "/settings/profile", icon: UserCircle },
+      { name: "Company", href: "/settings/company", icon: Building2, minRole: "admin" },
+      { name: "Team", href: "/settings/users", icon: Users, minRole: "admin" },
+      { name: "Billing", href: "/settings/billing", icon: CreditCard, minRole: "owner" },
+      { name: "Audit Log", href: "/settings/audit", icon: ClipboardList, minRole: "admin" },
     ]
   },
   {

@@ -19,3 +19,7 @@ export * from "./landing_pages";
 export * from "./api_keys";
 export * from "./support_tickets";
 export * from "./locations";
+export * from "./company_settings";
+export * from "./user_profiles";
+export * from "./user_invites";
+export * from "./audit_log";

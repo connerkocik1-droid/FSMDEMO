@@ -22,6 +22,11 @@ import DemoScheduler from "@/pages/settings/demo-scheduler";
 import LandingPages from "@/pages/settings/landing-pages";
 import Locations from "@/pages/settings/locations";
 import ApiKeys from "@/pages/settings/api-keys";
+import CompanySettings from "@/pages/settings/company";
+import UsersDirectory from "@/pages/settings/users-directory";
+import UserProfile from "@/pages/settings/profile";
+import BillingPage from "@/pages/settings/billing";
+import AuditLogPage from "@/pages/settings/audit";
 import PublicReview from "@/pages/public-review";
 
 const queryClient = new QueryClient();
@@ -117,6 +122,36 @@ function AppRouter() {
               <Route path="/analytics">
                 <ProtectedRoute requiredFeature="full_analytics">
                   <Analytics />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/settings/profile">
+                <ProtectedRoute>
+                  <UserProfile />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/settings/company">
+                <ProtectedRoute minRole="admin">
+                  <CompanySettings />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/settings/users">
+                <ProtectedRoute minRole="admin">
+                  <UsersDirectory />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/settings/billing">
+                <ProtectedRoute minRole="owner">
+                  <BillingPage />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/settings/audit">
+                <ProtectedRoute minRole="admin">
+                  <AuditLogPage />
                 </ProtectedRoute>
               </Route>
 
