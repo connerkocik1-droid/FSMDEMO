@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { demoRequestsTable, demoSlotsTable, demoBookingsTable, demoHostsTable, demoAccessTokensTable, liveDemoSessionsTable, tierVideoUrlsTable } from "@workspace/db/schema";
+import { demoRequestsTable, demoSlotsTable, demoBookingsTable, demoHostsTable, demoAccessTokensTable, liveDemoSessionsTable, liveDemoRegistrationsTable, tierVideosTable } from "@workspace/db/schema";
 import { nanoid } from "nanoid";
 import { randomUUID } from "crypto";
-import { eq, sql, and, gte, count, gt } from "drizzle-orm";
+import { eq, sql, and, gte, count } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/auth";
 
 const router = Router();
@@ -350,16 +350,121 @@ router.get("/access-tokens", requireAuth, requireRole("owner"), async (req: Auth
 
 router.get("/live-sessions", async (_req, res) => {
   try {
-    const now = new Date();
     const sessions = await db.select().from(liveDemoSessionsTable)
-      .where(and(
-        eq(liveDemoSessionsTable.isActive, true),
-        gt(liveDemoSessionsTable.scheduledAt, now)
-      ))
-      .orderBy(liveDemoSessionsTable.scheduledAt)
-      .limit(10);
+      .where(gte(liveDemoSessionsTable.datetime, new Date()))
+      .orderBy(liveDemoSessionsTable.datetime);
 
-    return res.json({ sessions });
+    const sessionsWithCounts = await Promise.all(
+      sessions.map(async (session) => {
+        const regCount = await db.select({ count: count() })
+          .from(liveDemoRegistrationsTable)
+          .where(eq(liveDemoRegistrationsTable.sessionId, session.id));
+        return { ...session, registrationCount: regCount[0]?.count ?? 0 };
+      })
+    );
+
+    return res.json(sessionsWithCounts);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.post("/live-sessions", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const { title, description, datetime, durationMin, externalMeetingLink, maxRegistrations } = req.body;
+    const [session] = await db.insert(liveDemoSessionsTable).values({
+      title,
+      description,
+      datetime: new Date(datetime),
+      durationMin: durationMin || 45,
+      externalMeetingLink,
+      maxRegistrations: maxRegistrations || 50,
+    }).returning();
+    return res.status(201).json(session);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.patch("/live-sessions/:id", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, datetime, durationMin, externalMeetingLink, maxRegistrations } = req.body;
+    const updateData: any = { updatedAt: new Date() };
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (datetime !== undefined) updateData.datetime = new Date(datetime);
+    if (durationMin !== undefined) updateData.durationMin = durationMin;
+    if (externalMeetingLink !== undefined) updateData.externalMeetingLink = externalMeetingLink;
+    if (maxRegistrations !== undefined) updateData.maxRegistrations = maxRegistrations;
+
+    const [updated] = await db.update(liveDemoSessionsTable)
+      .set(updateData)
+      .where(eq(liveDemoSessionsTable.id, parseInt(id)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "not_found" });
+    return res.json(updated);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.delete("/live-sessions/:id", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(liveDemoRegistrationsTable).where(eq(liveDemoRegistrationsTable.sessionId, parseInt(id)));
+    await db.delete(liveDemoSessionsTable).where(eq(liveDemoSessionsTable.id, parseInt(id)));
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.post("/live-sessions/:id/register", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, email } = req.body;
+
+    const sessions = await db.select().from(liveDemoSessionsTable)
+      .where(eq(liveDemoSessionsTable.id, parseInt(id)))
+      .limit(1);
+
+    if (sessions.length === 0) return res.status(404).json({ error: "session_not_found" });
+
+    const regCount = await db.select({ count: count() })
+      .from(liveDemoRegistrationsTable)
+      .where(eq(liveDemoRegistrationsTable.sessionId, parseInt(id)));
+
+    if (sessions[0].maxRegistrations && (regCount[0]?.count ?? 0) >= sessions[0].maxRegistrations) {
+      return res.status(409).json({ error: "session_full" });
+    }
+
+    const [registration] = await db.insert(liveDemoRegistrationsTable).values({
+      sessionId: parseInt(id),
+      firstName,
+      lastName,
+      email,
+    }).returning();
+
+    return res.status(201).json(registration);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.get("/live-sessions/:id/registrations", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const registrations = await db.select().from(liveDemoRegistrationsTable)
+      .where(eq(liveDemoRegistrationsTable.sessionId, parseInt(id)))
+      .orderBy(sql`${liveDemoRegistrationsTable.createdAt} DESC`);
+    return res.json(registrations);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "server_error" });
@@ -368,10 +473,37 @@ router.get("/live-sessions", async (_req, res) => {
 
 router.get("/tier-videos", async (_req, res) => {
   try {
-    const videos = await db.select().from(tierVideoUrlsTable)
-      .orderBy(tierVideoUrlsTable.tier);
+    const videos = await db.select().from(tierVideosTable).orderBy(tierVideosTable.id);
+    return res.json(videos);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 
-    return res.json({ videos });
+router.put("/tier-videos/:tierName", requireAuth, requireRole("owner"), async (req: AuthRequest, res) => {
+  try {
+    const { tierName } = req.params;
+    const { videoUrl, description } = req.body;
+
+    const existing = await db.select().from(tierVideosTable)
+      .where(eq(tierVideosTable.tierName, tierName))
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [updated] = await db.update(tierVideosTable)
+        .set({ videoUrl, description, updatedAt: new Date() })
+        .where(eq(tierVideosTable.tierName, tierName))
+        .returning();
+      return res.json(updated);
+    } else {
+      const [created] = await db.insert(tierVideosTable).values({
+        tierName,
+        videoUrl,
+        description,
+      }).returning();
+      return res.status(201).json(created);
+    }
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "server_error" });

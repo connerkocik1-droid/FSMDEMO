@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Calendar, Clock, Users, Plus, X, Save, BarChart3, CheckCircle, AlertCircle, Key, Ban } from "lucide-react";
+import { Calendar, Clock, Users, Plus, X, Save, BarChart3, CheckCircle, AlertCircle, Key, Ban, Video, Trash2, Edit3 } from "lucide-react";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const TIERS = ["Free", "Independent", "Pro", "Franchise", "Enterprise"];
 
 interface TimeBlock {
   start: string;
@@ -31,6 +32,23 @@ interface DemoConfig {
   assignmentMethod: string;
 }
 
+interface LiveSession {
+  id?: number;
+  title: string;
+  description: string;
+  datetime: string;
+  durationMin: number;
+  externalMeetingLink: string;
+  maxRegistrations: number;
+  registrationCount?: number;
+}
+
+interface TierVideoData {
+  tierName: string;
+  videoUrl: string;
+  description: string;
+}
+
 export default function DemoScheduler() {
   const [config, setConfig] = useState<DemoConfig>({
     availableDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
@@ -52,6 +70,17 @@ export default function DemoScheduler() {
   const [newTimeEnd, setNewTimeEnd] = useState("10:00");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
+  const [showSessionForm, setShowSessionForm] = useState(false);
+  const [editingSession, setEditingSession] = useState<LiveSession | null>(null);
+  const [sessionForm, setSessionForm] = useState<LiveSession>({
+    title: "", description: "", datetime: "", durationMin: 45, externalMeetingLink: "", maxRegistrations: 50,
+  });
+
+  const [tierVideos, setTierVideos] = useState<Record<string, TierVideoData>>({});
+  const [editingTier, setEditingTier] = useState<string | null>(null);
+  const [tierForm, setTierForm] = useState<TierVideoData>({ tierName: "", videoUrl: "", description: "" });
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/demo/settings`, {
@@ -85,7 +114,32 @@ export default function DemoScheduler() {
         if (Array.isArray(data)) setAccessTokens(data);
       })
       .catch(console.error);
+
+    fetchLiveSessions();
+    fetchTierVideos();
   }, []);
+
+  const fetchLiveSessions = () => {
+    fetch(`${import.meta.env.BASE_URL}api/demo/live-sessions`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setLiveSessions(data);
+      })
+      .catch(console.error);
+  };
+
+  const fetchTierVideos = () => {
+    fetch(`${import.meta.env.BASE_URL}api/demo/tier-videos`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const map: Record<string, TierVideoData> = {};
+          data.forEach((v: any) => { map[v.tierName] = v; });
+          setTierVideos(map);
+        }
+      })
+      .catch(console.error);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -157,6 +211,57 @@ export default function DemoScheduler() {
     }
   };
 
+  const handleSaveSession = async () => {
+    try {
+      if (editingSession?.id) {
+        await fetch(`${import.meta.env.BASE_URL}api/demo/live-sessions/${editingSession.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "x-clerk-user-id": "user_mock_123" },
+          body: JSON.stringify(sessionForm),
+        });
+      } else {
+        await fetch(`${import.meta.env.BASE_URL}api/demo/live-sessions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-clerk-user-id": "user_mock_123" },
+          body: JSON.stringify(sessionForm),
+        });
+      }
+      setShowSessionForm(false);
+      setEditingSession(null);
+      setSessionForm({ title: "", description: "", datetime: "", durationMin: 45, externalMeetingLink: "", maxRegistrations: 50 });
+      fetchLiveSessions();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSession = async (id: number) => {
+    try {
+      await fetch(`${import.meta.env.BASE_URL}api/demo/live-sessions/${id}`, {
+        method: "DELETE",
+        headers: { "x-clerk-user-id": "user_mock_123" },
+      });
+      fetchLiveSessions();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveTierVideo = async () => {
+    if (!editingTier) return;
+    try {
+      await fetch(`${import.meta.env.BASE_URL}api/demo/tier-videos/${encodeURIComponent(editingTier)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "x-clerk-user-id": "user_mock_123" },
+        body: JSON.stringify(tierForm),
+      });
+      setEditingTier(null);
+      fetchTierVideos();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -201,6 +306,210 @@ export default function DemoScheduler() {
             <p className="text-2xl font-bold text-foreground">{stats.confirmationRate}%</p>
             <p className="text-sm text-muted-foreground">Confirmation Rate</p>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary" /> Live Demo Sessions
+          </h3>
+          <button
+            onClick={() => {
+              setEditingSession(null);
+              setSessionForm({ title: "", description: "", datetime: "", durationMin: 45, externalMeetingLink: "", maxRegistrations: 50 });
+              setShowSessionForm(true);
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4" /> Add Session
+          </button>
+        </div>
+
+        {showSessionForm && (
+          <div className="bg-secondary rounded-xl p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Title</label>
+                <input
+                  type="text"
+                  value={sessionForm.title}
+                  onChange={e => setSessionForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., ServiceOS Live Demo"
+                  className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={sessionForm.datetime}
+                  onChange={e => setSessionForm(prev => ({ ...prev, datetime: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <textarea
+                value={sessionForm.description}
+                onChange={e => setSessionForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="What will be covered in this session?"
+                rows={2}
+                className="w-full px-3 py-2 rounded-lg bg-background border text-sm resize-none"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Duration (min)</label>
+                <input
+                  type="number"
+                  value={sessionForm.durationMin}
+                  onChange={e => setSessionForm(prev => ({ ...prev, durationMin: parseInt(e.target.value) || 45 }))}
+                  className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Max Registrations</label>
+                <input
+                  type="number"
+                  value={sessionForm.maxRegistrations}
+                  onChange={e => setSessionForm(prev => ({ ...prev, maxRegistrations: parseInt(e.target.value) || 50 }))}
+                  className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Meeting Link</label>
+                <input
+                  type="url"
+                  value={sessionForm.externalMeetingLink}
+                  onChange={e => setSessionForm(prev => ({ ...prev, externalMeetingLink: e.target.value }))}
+                  placeholder="https://zoom.us/..."
+                  className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleSaveSession} className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90">
+                {editingSession?.id ? "Update Session" : "Create Session"}
+              </button>
+              <button onClick={() => { setShowSessionForm(false); setEditingSession(null); }} className="px-4 py-2 bg-secondary text-muted-foreground text-sm font-medium rounded-lg border hover:bg-secondary/80">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {liveSessions.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">No live demo sessions scheduled. Create one to get started.</p>
+        ) : (
+          <div className="space-y-2">
+            {liveSessions.map((session) => (
+              <div key={session.id} className="flex items-center justify-between p-4 bg-secondary rounded-xl">
+                <div className="flex-1">
+                  <p className="font-medium text-sm text-foreground">{session.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {new Date(session.datetime).toLocaleString()} &middot; {session.durationMin}min &middot; {session.registrationCount ?? 0} registered
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingSession(session);
+                      setSessionForm({
+                        title: session.title,
+                        description: session.description || "",
+                        datetime: (() => { const d = new Date(session.datetime); const offset = d.getTimezoneOffset(); const local = new Date(d.getTime() - offset * 60000); return local.toISOString().slice(0, 16); })(),
+                        durationMin: session.durationMin,
+                        externalMeetingLink: session.externalMeetingLink || "",
+                        maxRegistrations: session.maxRegistrations || 50,
+                      });
+                      setShowSessionForm(true);
+                    }}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-background"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => session.id && handleDeleteSession(session.id)}
+                    className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-background"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card rounded-2xl border p-6 space-y-4">
+        <h3 className="font-semibold text-foreground flex items-center gap-2">
+          <Video className="w-4 h-4 text-primary" /> Tier Video URLs
+        </h3>
+        <p className="text-sm text-muted-foreground">Set video URLs for each pricing tier. These appear on the public demo page.</p>
+
+        {editingTier && (
+          <div className="bg-secondary rounded-xl p-4 space-y-3">
+            <p className="text-sm font-medium text-foreground">Editing: {editingTier}</p>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Video URL</label>
+              <input
+                type="url"
+                value={tierForm.videoUrl}
+                onChange={e => setTierForm(prev => ({ ...prev, videoUrl: e.target.value }))}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <input
+                type="text"
+                value={tierForm.description}
+                onChange={e => setTierForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="What this video covers..."
+                className="w-full px-3 py-2 rounded-lg bg-background border text-sm"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleSaveTierVideo} className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90">
+                Save
+              </button>
+              <button onClick={() => setEditingTier(null)} className="px-4 py-2 bg-secondary text-muted-foreground text-sm font-medium rounded-lg border hover:bg-secondary/80">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {TIERS.map(tier => {
+            const video = tierVideos[tier];
+            return (
+              <div key={tier} className="flex items-center justify-between p-4 bg-secondary rounded-xl">
+                <div className="flex-1">
+                  <p className="font-medium text-sm text-foreground">{tier}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {video?.videoUrl ? video.videoUrl : "No video set"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTier(tier);
+                    setTierForm({
+                      tierName: tier,
+                      videoUrl: video?.videoUrl || "",
+                      description: video?.description || "",
+                    });
+                  }}
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-background"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 

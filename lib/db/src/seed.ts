@@ -9,6 +9,8 @@ import {
   leadsTable,
   reviewsTable,
   referralsTable,
+  liveDemoSessionsTable,
+  tierVideosTable,
 } from "./schema";
 
 function daysAgo(n: number): Date {
@@ -442,7 +444,86 @@ export async function seedDemoData() {
     await seedCompany(config);
   }
 
+  await seedLiveDemoSessions();
+  await seedTierVideos();
+
   console.log("🌱 Demo data seeding complete!");
+}
+
+function daysFromNow(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  d.setHours(14, 0, 0, 0);
+  return d;
+}
+
+async function seedLiveDemoSessions() {
+  const existing = await db.select().from(liveDemoSessionsTable).limit(1);
+  if (existing.length > 0) return;
+
+  await db.insert(liveDemoSessionsTable).values([
+    {
+      title: "ServiceOS Platform Overview",
+      description: "A comprehensive walkthrough of the ServiceOS platform covering dispatch, scheduling, GPS tracking, and invoicing. Perfect for business owners evaluating the platform.",
+      datetime: daysFromNow(3),
+      durationMin: 45,
+      externalMeetingLink: "https://zoom.us/j/example1",
+      maxRegistrations: 50,
+    },
+    {
+      title: "AI Dispatch & Smart Scheduling Deep Dive",
+      description: "Learn how AI-powered dispatch automatically assigns the right technician to every job based on skills, location, and availability.",
+      datetime: daysFromNow(7),
+      durationMin: 30,
+      externalMeetingLink: "https://zoom.us/j/example2",
+      maxRegistrations: 30,
+    },
+    {
+      title: "Growing Your Business with Referral Networks",
+      description: "Discover how to leverage the ServiceOS referral network to exchange leads with local businesses and grow your customer base.",
+      datetime: daysFromNow(14),
+      durationMin: 30,
+      externalMeetingLink: "https://zoom.us/j/example3",
+      maxRegistrations: 40,
+    },
+  ]);
+
+  console.log("  ✓ Seeded live demo sessions");
+}
+
+async function seedTierVideos() {
+  const existing = await db.select().from(tierVideosTable).limit(1);
+  if (existing.length > 0) return;
+
+  await db.insert(tierVideosTable).values([
+    {
+      tierName: "Free",
+      videoUrl: null,
+      description: "Core operations overview: basic scheduling, manual invoicing, and team management for up to 3 users.",
+    },
+    {
+      tierName: "Independent",
+      videoUrl: null,
+      description: "Live GPS tracking, manual SMS communication, and referral network access for growing teams up to 6 users.",
+    },
+    {
+      tierName: "Pro",
+      videoUrl: null,
+      description: "AI-powered SMS workflows, full analytics dashboard, automated review collection, and priority support for teams up to 25.",
+    },
+    {
+      tierName: "Franchise",
+      videoUrl: null,
+      description: "Landing page builder, multi-location routing, custom API access, and dedicated success manager for up to 75 users.",
+    },
+    {
+      tierName: "Enterprise",
+      videoUrl: null,
+      description: "Custom integrations, dedicated success manager, custom SLA, and enterprise-grade security for 75+ users.",
+    },
+  ]);
+
+  console.log("  ✓ Seeded tier video placeholders");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

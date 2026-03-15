@@ -84,6 +84,10 @@ import type {
   SendReviewRequestBody,
   CreateApiKeyBody,
   UpdateApiKeyBody,
+  LiveDemoSession,
+  LiveDemoRegistrationBody,
+  LiveDemoRegistration,
+  TierVideo,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -3963,4 +3967,136 @@ export function useCreateApiKey<TError = ErrorType<unknown>, TContext = unknown>
 }): UseMutationResult<Awaited<ReturnType<typeof createApiKey>>, TError, { data: CreateApiKeyBody }, TContext> {
   const mutationOptions = getCreateApiKeyMutationOptions(options);
   return useMutation(mutationOptions);
+}
+
+export const getGetLiveDemoSessionsUrl = () => {
+  return `/api/demo/live-sessions`;
+};
+
+export const getLiveDemoSessions = async (
+  options?: RequestInit,
+): Promise<LiveDemoSession[]> => {
+  return customFetch<LiveDemoSession[]>(getGetLiveDemoSessionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLiveDemoSessionsQueryKey = () => {
+  return [`/api/demo/live-sessions`] as const;
+};
+
+export const getGetLiveDemoSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLiveDemoSessions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getLiveDemoSessions>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetLiveDemoSessionsQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLiveDemoSessions>>> = ({ signal }) =>
+    getLiveDemoSessions({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLiveDemoSessions>>, TError, TData
+  > & { queryKey: QueryKey };
+};
+
+export function useGetLiveDemoSessions<
+  TData = Awaited<ReturnType<typeof getLiveDemoSessions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getLiveDemoSessions>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLiveDemoSessionsQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getRegisterForLiveDemoUrl = (id: number) => {
+  return `/api/demo/live-sessions/${id}/register`;
+};
+
+export const registerForLiveDemo = async (
+  id: number,
+  liveDemoRegistrationBody: LiveDemoRegistrationBody,
+  options?: RequestInit,
+): Promise<LiveDemoRegistration> => {
+  return customFetch<LiveDemoRegistration>(getRegisterForLiveDemoUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(liveDemoRegistrationBody),
+  });
+};
+
+export const getRegisterForLiveDemoMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof registerForLiveDemo>>, TError, { id: number; data: BodyType<LiveDemoRegistrationBody> }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof registerForLiveDemo>>, TError, { id: number; data: BodyType<LiveDemoRegistrationBody> }, TContext> => {
+  const mutationKey = ["registerForLiveDemo"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerForLiveDemo>>, { id: number; data: BodyType<LiveDemoRegistrationBody> }> = (props) => {
+    const { id, data } = props ?? {};
+    return registerForLiveDemo(id, data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useRegisterForLiveDemo<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof registerForLiveDemo>>, TError, { id: number; data: BodyType<LiveDemoRegistrationBody> }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof registerForLiveDemo>>, TError, { id: number; data: BodyType<LiveDemoRegistrationBody> }, TContext> {
+  const mutationOptions = getRegisterForLiveDemoMutationOptions(options);
+  return useMutation(mutationOptions);
+}
+
+export const getGetTierVideosUrl = () => {
+  return `/api/demo/tier-videos`;
+};
+
+export const getTierVideos = async (
+  options?: RequestInit,
+): Promise<TierVideo[]> => {
+  return customFetch<TierVideo[]>(getGetTierVideosUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTierVideosQueryKey = () => {
+  return [`/api/demo/tier-videos`] as const;
+};
+
+export const getGetTierVideosQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTierVideos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getTierVideos>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetTierVideosQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTierVideos>>> = ({ signal }) =>
+    getTierVideos({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTierVideos>>, TError, TData
+  > & { queryKey: QueryKey };
+};
+
+export function useGetTierVideos<
+  TData = Awaited<ReturnType<typeof getTierVideos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getTierVideos>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTierVideosQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
 }

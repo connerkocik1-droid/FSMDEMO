@@ -916,3 +916,38 @@ export type UpdateApiKeyBody = {
   label?: string;
   isActive?: boolean;
 };
+
+export type LiveDemoSession = {
+  id: number;
+  title: string;
+  description?: string | null;
+  datetime: string;
+  durationMin: number;
+  externalMeetingLink?: string | null;
+  maxRegistrations?: number | null;
+  registrationCount?: number;
+  createdAt?: string;
+};
+
+export type LiveDemoRegistrationBody = {
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type LiveDemoRegistration = {
+  id: number;
+  sessionId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  createdAt?: string;
+};
+
+export type TierVideo = {
+  id: number;
+  tierName: string;
+  videoUrl?: string | null;
+  description?: string | null;
+  createdAt?: string;
+};
