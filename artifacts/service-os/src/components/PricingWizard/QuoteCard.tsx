@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { QuoteResponse, BillingPeriod } from "./types";
 import {
   Check, TrendingDown, ArrowRight, ChevronDown, ChevronUp,
-  RefreshCw, Mail,
+  RefreshCw, Mail, Plus,
 } from "lucide-react";
 
 interface QuoteCardProps {
@@ -14,18 +14,55 @@ interface QuoteCardProps {
   initialAddonKeys?: string[] | null;
 }
 
-function calcMonthly(quote: QuoteResponse, addonStates: Record<string, boolean>, billingPeriod: BillingPeriod): number {
-  const base = billingPeriod === "annual" ? quote.monthly_base * 0.83 : quote.monthly_base;
-  const recurringAddons = quote.suggested_addons
-    .filter(a => addonStates[a.addon_key] && !a.is_one_time)
-    .reduce((sum, a) => sum + a.price, 0);
-  return Math.round((base + recurringAddons + (quote.user_addon_cost || 0)) * 100) / 100;
+interface ExtraAddon {
+  key: string;
+  name: string;
+  price: number;
+  priceLabel: string;
+  isOneTime: boolean;
+  description: string;
 }
 
-function calcOneTime(quote: QuoteResponse, addonStates: Record<string, boolean>): number {
-  return quote.suggested_addons
+const ALL_ADDONS: ExtraAddon[] = [
+  { key: "gps_tracking",       name: "GPS Tracking",         price: 5,  priceLabel: "/mo",   isOneTime: false, description: "Real-time crew locations and route history" },
+  { key: "landing_page",       name: "Landing Pages",         price: 6,  priceLabel: "/mo",   isOneTime: false, description: "Custom booking pages for each service" },
+  { key: "sms_marketing",      name: "SMS Campaigns",         price: 6,  priceLabel: "/mo",   isOneTime: false, description: "Automated text marketing and follow-ups" },
+  { key: "live_chat",          name: "Live Chat",             price: 14, priceLabel: "/mo",   isOneTime: false, description: "Website chat widget with AI-assisted replies" },
+  { key: "background_check",   name: "Background Checks",     price: 9,  priceLabel: "/check",isOneTime: false, description: "Instant employee screening reports" },
+  { key: "multi_location",     name: "Multi-Location",        price: 49, priceLabel: "/mo",   isOneTime: false, description: "Manage multiple offices or territories" },
+  { key: "custom_reports",     name: "Custom Reports",        price: 6,  priceLabel: "/mo",   isOneTime: false, description: "Build your own dashboards and exports" },
+  { key: "white_label",        name: "White Label",           price: 49, priceLabel: " once", isOneTime: true,  description: "Your branding, your domain, your app" },
+  { key: "onboarding_session", name: "Onboarding Session",    price: 59, priceLabel: " once", isOneTime: true,  description: "Guided setup with a ServiceOS specialist" },
+];
+
+function calcMonthly(
+  quote: QuoteResponse,
+  addonStates: Record<string, boolean>,
+  extraStates: Record<string, ExtraAddon & { active: boolean }>,
+  billingPeriod: BillingPeriod
+): number {
+  const base = billingPeriod === "annual" ? quote.monthly_base * 0.83 : quote.monthly_base;
+  const suggestedRecurring = quote.suggested_addons
+    .filter(a => addonStates[a.addon_key] && !a.is_one_time)
+    .reduce((sum, a) => sum + a.price, 0);
+  const extraRecurring = Object.values(extraStates)
+    .filter(a => a.active && !a.isOneTime)
+    .reduce((sum, a) => sum + a.price, 0);
+  return Math.round((base + suggestedRecurring + extraRecurring + (quote.user_addon_cost || 0)) * 100) / 100;
+}
+
+function calcOneTime(
+  quote: QuoteResponse,
+  addonStates: Record<string, boolean>,
+  extraStates: Record<string, ExtraAddon & { active: boolean }>
+): number {
+  const suggestedOnce = quote.suggested_addons
     .filter(a => addonStates[a.addon_key] && a.is_one_time)
     .reduce((sum, a) => sum + a.price, 0);
+  const extraOnce = Object.values(extraStates)
+    .filter(a => a.active && a.isOneTime)
+    .reduce((sum, a) => sum + a.price, 0);
+  return suggestedOnce + extraOnce;
 }
 
 function trackEvent(name: string, props?: Record<string, unknown>) {
@@ -56,30 +93,53 @@ const TIER_LABELS = { free: "Free", pro: "Pro", enterprise: "Enterprise" };
 export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = null }: QuoteCardProps) {
   const [, navigate] = useLocation();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
+
+  // AI-recommended add-ons: pre-toggle based on default_on (or initialAddonKeys if provided)
   const [addonStates, setAddonStates] = useState<Record<string, boolean>>(
     Object.fromEntries(quote.suggested_addons.map(a => [
       a.addon_key,
       initialAddonKeys !== null ? initialAddonKeys.includes(a.addon_key) : a.default_on,
     ]))
   );
+
+  // Extra add-ons: everything not already suggested by the AI
+  const suggestedKeys = new Set(quote.suggested_addons.map(a => a.addon_key));
+  const extraAddons = ALL_ADDONS.filter(a => !suggestedKeys.has(a.key));
+
+  const [extraStates, setExtraStates] = useState<Record<string, ExtraAddon & { active: boolean }>>(
+    Object.fromEntries(extraAddons.map(a => [a.key, { ...a, active: false }]))
+  );
+  const [showMoreAddons, setShowMoreAddons] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
 
-  const monthly = calcMonthly(quote, addonStates, billingPeriod);
-  const oneTime = calcOneTime(quote, addonStates);
+  const monthly = calcMonthly(quote, addonStates, extraStates, billingPeriod);
+  const oneTime = calcOneTime(quote, addonStates, extraStates);
   const annualTotal = Math.round(monthly * 12 * 0.83);
   const annualSavings = Math.round(monthly * 12 - annualTotal);
-  const activeAddons = quote.suggested_addons.filter(a => addonStates[a.addon_key]);
-  const activeAddonKeys = activeAddons.map(a => a.addon_key);
+
+  const activeSuggestedAddons = quote.suggested_addons.filter(a => addonStates[a.addon_key]);
+  const activeExtraAddons = Object.values(extraStates).filter(a => a.active);
+  const activeAddonKeys = [
+    ...activeSuggestedAddons.map(a => a.addon_key),
+    ...activeExtraAddons.map(a => a.key),
+  ];
+  const activeExtraCount = activeExtraAddons.length;
 
   function toggleAddon(key: string) {
     const newState = !addonStates[key];
     const newStates = { ...addonStates, [key]: newState };
     setAddonStates(newStates);
-    const newMonthly = calcMonthly(quote, newStates, billingPeriod);
-    trackEvent("wizard_addon_toggled", { addon_key: key, state: newState ? "on" : "off", new_total: newMonthly });
+    trackEvent("wizard_addon_toggled", { addon_key: key, state: newState ? "on" : "off", source: "ai_recommended" });
+  }
+
+  function toggleExtra(key: string) {
+    const newActive = !extraStates[key].active;
+    const newStates = { ...extraStates, [key]: { ...extraStates[key], active: newActive } };
+    setExtraStates(newStates);
+    trackEvent("wizard_addon_toggled", { addon_key: key, state: newActive ? "on" : "off", source: "extra" });
   }
 
   async function handleCta(cta: "subscribe" | "demo" | "free") {
@@ -135,7 +195,7 @@ export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = nu
       {/* AI-recommended add-ons */}
       {quote.suggested_addons.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Add-ons recommended for your pain points</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recommended for your pain points</p>
           <div className="space-y-2">
             {quote.suggested_addons.map(addon => (
               <div key={addon.addon_key} className="flex items-start gap-3 p-2.5 rounded-xl border bg-secondary/30 hover:bg-secondary/50 transition-colors">
@@ -155,8 +215,7 @@ export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = nu
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground">{addon.name}</span>
                     <span className="text-sm font-bold text-foreground shrink-0 ml-2">
-                      ${addon.price}
-                      <span className="text-xs font-normal text-muted-foreground">{addon.price_label}</span>
+                      ${addon.price}<span className="text-xs font-normal text-muted-foreground">{addon.price_label}</span>
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{addon.reason}</p>
@@ -169,6 +228,59 @@ export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = nu
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Add more add-ons (extras not suggested by AI) */}
+      {extraAddons.length > 0 && (
+        <div className="border rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowMoreAddons(o => !o)}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 bg-secondary/30 hover:bg-secondary/50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-[12px] font-semibold text-muted-foreground">
+                Add more add-ons
+              </span>
+              {activeExtraCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                  {activeExtraCount}
+                </span>
+              )}
+            </div>
+            {showMoreAddons ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+          </button>
+
+          {showMoreAddons && (
+            <div className="divide-y">
+              {extraAddons.map(addon => (
+                <div key={addon.key} className="flex items-center gap-3 px-3.5 py-2.5 bg-white hover:bg-secondary/20 transition-colors">
+                  <button
+                    onClick={() => toggleExtra(addon.key)}
+                    className={cn(
+                      "relative w-9 h-5 rounded-full shrink-0 transition-all duration-200",
+                      extraStates[addon.key]?.active ? "bg-primary" : "bg-secondary border"
+                    )}
+                  >
+                    <span className={cn(
+                      "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200",
+                      extraStates[addon.key]?.active ? "left-4" : "left-0.5"
+                    )} />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground">{addon.name}</span>
+                      <span className="text-sm font-bold text-foreground shrink-0 ml-2">
+                        ${addon.price}<span className="text-xs font-normal text-muted-foreground">{addon.priceLabel}</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{addon.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -219,10 +331,16 @@ export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = nu
               <span>Base plan ({TIER_LABELS[quote.recommended_tier]})</span>
               <span>${billingPeriod === "annual" ? Math.round(quote.monthly_base * 0.83) : quote.monthly_base}/mo</span>
             </div>
-            {activeAddons.filter(a => !a.is_one_time).map(a => (
+            {activeSuggestedAddons.filter(a => !a.is_one_time).map(a => (
               <div key={a.addon_key} className="flex justify-between text-muted-foreground">
                 <span>{a.name}</span>
                 <span>${a.price}{a.price_label}</span>
+              </div>
+            ))}
+            {activeExtraAddons.filter(a => !a.isOneTime).map(a => (
+              <div key={a.key} className="flex justify-between text-muted-foreground">
+                <span>{a.name}</span>
+                <span>${a.price}{a.priceLabel}</span>
               </div>
             ))}
             {quote.user_addon_cost > 0 && (
@@ -235,9 +353,9 @@ export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = nu
               <span>Monthly total</span>
               <span>${monthly}/mo</span>
             </div>
-            {activeAddons.filter(a => a.is_one_time).map(a => (
-              <div key={a.addon_key} className="flex justify-between text-muted-foreground">
-                <span>{a.name}</span>
+            {[...activeSuggestedAddons.filter(a => a.is_one_time), ...activeExtraAddons.filter(a => a.isOneTime)].map(a => (
+              <div key={"addon_key" in a ? a.addon_key : a.key} className="flex justify-between text-muted-foreground">
+                <span>{"name" in a ? a.name : ""}</span>
                 <span>${a.price} once</span>
               </div>
             ))}
