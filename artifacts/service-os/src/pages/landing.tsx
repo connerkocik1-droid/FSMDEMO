@@ -120,7 +120,7 @@ function HeroSection() {
             Get a Demo <ArrowRight className="w-5 h-5" />
           </Link>
           <Link
-            href="/login"
+            href="/signup"
             className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
           >
             Start Free
@@ -380,7 +380,7 @@ function FinalCTA() {
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/login"
+            href="/signup"
             onClick={() => trackCTAClick("final_start_free", "final_cta")}
             className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 transition-all flex items-center gap-2"
           >

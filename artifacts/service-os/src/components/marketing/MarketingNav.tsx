@@ -132,13 +132,19 @@ export function MarketingNav() {
 
         <div className="hidden lg:flex items-center gap-3">
           <Link
+            href="/login"
+            className="px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link
             href="/demo"
             className="px-5 py-2.5 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
           >
             Book a Demo
           </Link>
           <Link
-            href="/login"
+            href="/signup"
             className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm hover:shadow active:scale-95 text-sm"
           >
             Start Free
@@ -164,13 +170,19 @@ export function MarketingNav() {
             <Link href="/blog" className="block text-foreground font-medium py-2">Blog</Link>
             <div className="pt-4 border-t flex flex-col gap-3">
               <Link
+                href="/login"
+                className="w-full py-3 text-center font-semibold text-foreground border border-border rounded-xl"
+              >
+                Sign In
+              </Link>
+              <Link
                 href="/demo"
                 className="w-full py-3 text-center font-semibold text-primary border border-primary rounded-xl"
               >
                 Book a Demo
               </Link>
               <Link
-                href="/login"
+                href="/signup"
                 className="w-full py-3 text-center bg-primary text-primary-foreground font-semibold rounded-xl"
               >
                 Start Free
