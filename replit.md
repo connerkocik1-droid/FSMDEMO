@@ -74,12 +74,14 @@ ServiceOS is a full-stack pnpm monorepo.
 - **Analytics**: Comprehensive dashboards with various metric cards, charts, and lead funnel visualization.
 - **Settings**: Extensive settings for company profile, branding, regional preferences, user management, billing, and audit logs. Franchise+ tiers include landing page builders, multi-location management, and API key management.
 - **Marketing Site**: Dedicated marketing pages, blog, demo request flow, and robust SEO infrastructure including dynamic sitemaps, SEO components, and GA4 integration.
+- **Demo Page (redesigned)**: `/demo` has two sections — Upcoming Live Demos (DB-backed group webinar sessions with free inline registration) and Video Demos by Tier (5 plan cards with YouTube/Vimeo embed support). Existing private demo form preserved as secondary "Prefer a private demo?" CTA at bottom. Dev-admin Scheduling page has management UI for live sessions and tier video URLs.
+- **Employee Role Restrictions**: Sidebar fully filtered for operators (shows only Dashboard, My Jobs, Chat, My Earnings, My Profile). Operator Jobs view has Available/Upcoming/Past tabs with personal job counts, no Schedule Job/Board View/Live Tracking. Operator Financials shows personal My Earnings view. Route-level `minRole:"admin"` blocks GPS, Reviews, Referrals, Analytics, Dispatch. Chat and My Earnings are always visible to operators regardless of feature tier.
 
 ### System Design Choices
 - **API Design**: RESTful API routes clearly structured by resource (`/api/leads`, `/api/jobs`, etc.).
 - **Authorization**: A robust permission matrix (`canAccessFeature`, `hasPermission`, `isAtLeastRole`) governs access to features and functionality based on user role and subscription tier. `ProtectedRoute` components enforce these rules.
 - **Data Schemas**: Zod for runtime validation of API requests and responses.
-- **Database Schema**: 25 tables covering all entities from companies and users to jobs, invoices, leads, and marketing content.
+- **Database Schema**: 27 tables covering all entities from companies and users to jobs, invoices, leads, marketing content, live demo sessions, and tier video URLs.
 - **SEO**: Comprehensive SEO strategy including `react-helmet-async` for meta tags, JSON-LD schema helpers, sitemap generation, robots.txt, and GA4 integration.
 
 ## External Dependencies

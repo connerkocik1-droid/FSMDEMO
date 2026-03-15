@@ -42,6 +42,7 @@ interface NavItem {
 
 interface NavItemWithAliases extends NavItem {
   operatorName?: string;
+  operatorAlwaysShow?: boolean;
 }
 
 interface NavGroupDef {
@@ -70,7 +71,7 @@ const navGroups: NavGroupDef[] = [
   {
     label: "Communication",
     items: [
-      { name: "SMS Hub", operatorName: "Chat", href: "/sms", icon: MessageSquare, feature: "manual_sms" },
+      { name: "SMS Hub", operatorName: "Chat", href: "/sms", icon: MessageSquare, feature: "manual_sms", operatorAlwaysShow: true },
       { name: "Reviews", href: "/reviews", icon: Star, feature: "referral_network", minRole: "admin" },
       { name: "Referrals", href: "/referrals", icon: Share2, feature: "referral_network", minRole: "admin" },
     ]
@@ -78,7 +79,7 @@ const navGroups: NavGroupDef[] = [
   {
     label: "Reports",
     items: [
-      { name: "Financials", operatorName: "My Earnings", href: "/financials", icon: WalletCards, feature: "basic_financials" },
+      { name: "Financials", operatorName: "My Earnings", href: "/financials", icon: WalletCards, feature: "basic_financials", operatorAlwaysShow: true },
       { name: "Analytics", href: "/analytics", icon: LineChart, feature: "full_analytics", minRole: "admin" },
     ]
   },
@@ -121,6 +122,10 @@ export function Sidebar() {
         {navGroups.map((group) => {
           const visibleItems = group.items.filter(item => {
             if (item.minRole && !isAtLeastRole(item.minRole)) return false;
+            if (item.feature && !canAccessFeature(item.feature)) {
+              if (isOperator && (item as NavItemWithAliases).operatorAlwaysShow) return true;
+              return false;
+            }
             return true;
           });
           if (visibleItems.length === 0) return null;
@@ -133,7 +138,7 @@ export function Sidebar() {
               <nav className="space-y-1">
                 {visibleItems.map((item) => {
                   const isActive = location === item.href || location.startsWith(`${item.href}/`);
-                  const isLocked = item.feature ? !canAccessFeature(item.feature) : false;
+                  const isLocked = item.feature && !canAccessFeature(item.feature) && !(isOperator && (item as NavItemWithAliases).operatorAlwaysShow);
                   const displayName = isOperator && (item as NavItemWithAliases).operatorName ? (item as NavItemWithAliases).operatorName : item.name;
                   
                   return (

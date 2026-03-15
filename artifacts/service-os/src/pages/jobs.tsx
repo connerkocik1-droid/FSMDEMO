@@ -129,11 +129,15 @@ export default function Jobs() {
         <div className="md:col-span-1 space-y-6">
           <div className="bg-card p-5 rounded-2xl border shadow-sm space-y-4">
             <h3 className="font-bold text-foreground">Summary</h3>
-            {[
+            {(isAdmin ? [
               { label: "Scheduled", count: jobsData?.jobs.filter(j => j.status === "scheduled").length || 0, color: "bg-purple-500" },
               { label: "In Progress", count: jobsData?.jobs.filter(j => j.status === "in_progress").length || 0, color: "bg-blue-500" },
               { label: "Completed", count: jobsData?.jobs.filter(j => j.status === "completed").length || 0, color: "bg-green-500" },
-            ].map(item => (
+            ] : [
+              { label: "Available", count: myJobs.filter(j => j.status === "scheduled" || j.status === "in_progress").length, color: "bg-blue-500" },
+              { label: "Upcoming", count: myJobs.filter(j => j.status === "scheduled" && j.scheduledStart && isFuture(new Date(j.scheduledStart))).length, color: "bg-purple-500" },
+              { label: "Completed", count: myJobs.filter(j => j.status === "completed").length, color: "bg-green-500" },
+            ]).map(item => (
               <div key={item.label} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div>
@@ -143,11 +147,13 @@ export default function Jobs() {
               </div>
             ))}
           </div>
-          <div className="bg-primary/10 border border-primary/20 p-5 rounded-2xl">
-            <h3 className="font-bold text-primary mb-2">Live Tracking</h3>
-            <p className="text-sm text-primary/80 mb-4">Enable GPS to see where your crews are in real-time.</p>
-            <Link href="/gps" className="text-sm font-semibold text-primary underline underline-offset-4">Open Map View</Link>
-          </div>
+          {isAdmin && (
+            <div className="bg-primary/10 border border-primary/20 p-5 rounded-2xl">
+              <h3 className="font-bold text-primary mb-2">Live Tracking</h3>
+              <p className="text-sm text-primary/80 mb-4">Enable GPS to see where your crews are in real-time.</p>
+              <Link href="/gps" className="text-sm font-semibold text-primary underline underline-offset-4">Open Map View</Link>
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-3 bg-card border rounded-2xl shadow-sm overflow-hidden flex flex-col">

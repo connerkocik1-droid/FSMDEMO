@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { demoRequestsTable, demoSlotsTable, demoBookingsTable, demoHostsTable, demoAccessTokensTable } from "@workspace/db/schema";
+import { demoRequestsTable, demoSlotsTable, demoBookingsTable, demoHostsTable, demoAccessTokensTable, liveDemoSessionsTable, tierVideoUrlsTable } from "@workspace/db/schema";
 import { nanoid } from "nanoid";
 import { randomUUID } from "crypto";
-import { eq, sql, and, gte, count } from "drizzle-orm";
+import { eq, sql, and, gte, count, gt } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/auth";
 
 const router = Router();
@@ -342,6 +342,36 @@ router.get("/access-tokens", requireAuth, requireRole("owner"), async (req: Auth
       .limit(20);
 
     return res.json(tokens);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.get("/live-sessions", async (_req, res) => {
+  try {
+    const now = new Date();
+    const sessions = await db.select().from(liveDemoSessionsTable)
+      .where(and(
+        eq(liveDemoSessionsTable.isActive, true),
+        gt(liveDemoSessionsTable.scheduledAt, now)
+      ))
+      .orderBy(liveDemoSessionsTable.scheduledAt)
+      .limit(10);
+
+    return res.json({ sessions });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+router.get("/tier-videos", async (_req, res) => {
+  try {
+    const videos = await db.select().from(tierVideoUrlsTable)
+      .orderBy(tierVideoUrlsTable.tier);
+
+    return res.json({ videos });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "server_error" });

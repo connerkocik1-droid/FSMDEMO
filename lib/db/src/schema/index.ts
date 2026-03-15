@@ -25,3 +25,5 @@ export * from "./user_invites";
 export * from "./audit_log";
 export * from "./demo_access_tokens";
 export * from "./blog_subscribers";
+export * from "./live_demo_sessions";
+export * from "./tier_video_urls";
