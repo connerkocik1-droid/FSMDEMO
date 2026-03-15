@@ -99,7 +99,7 @@ function ChatMessage({ msg }: { msg: Message }) {
 }
 
 function ProgressDots({ step }: { step: WizardStep }) {
-  const stepNum = step === "processing" || step === "quote" ? 4 : (step as number);
+  const stepNum = step === 3 || step === "processing" || step === "quote" ? 4 : (step as number);
   return (
     <div className="flex items-center gap-1.5">
       {[0, 1, 2, 3].map(i => (
