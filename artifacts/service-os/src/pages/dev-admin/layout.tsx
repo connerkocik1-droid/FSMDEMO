@@ -1,11 +1,12 @@
 import { Link, useLocation, Redirect } from "wouter";
-import { Calendar, Users, Plug, LogOut, Menu, X } from "lucide-react";
+import { Calendar, Users, Plug, LogOut, Menu, X, Database } from "lucide-react";
 import { useState } from "react";
 import { useDevAdminAuth } from "@/lib/dev-admin-auth";
 
 const navItems = [
   { name: "Demo Scheduling", href: "/dev-admin/scheduling", icon: Calendar },
   { name: "Demo Accounts", href: "/dev-admin/accounts", icon: Users },
+  { name: "Demo Builder", href: "/dev-admin/demo-builder", icon: Database },
   { name: "API Integrations", href: "/dev-admin/integrations", icon: Plug },
 ];
 

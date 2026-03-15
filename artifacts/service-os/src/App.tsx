@@ -52,6 +52,7 @@ import DevAdminLayout from "@/pages/dev-admin/layout";
 import DevAdminScheduling from "@/pages/dev-admin/scheduling";
 import DevAdminAccounts from "@/pages/dev-admin/accounts";
 import DevAdminIntegrations from "@/pages/dev-admin/integrations";
+import DevAdminDemoBuilder from "@/pages/dev-admin/demo-builder";
 
 const BLOG_CATEGORIES = ["dispatching", "invoicing", "growth", "industry-guides", "comparisons"];
 
@@ -103,6 +104,9 @@ function AppRouter() {
       <Route path="/dev-admin/integrations">
         <DevAdminLayout><DevAdminIntegrations /></DevAdminLayout>
       </Route>
+      <Route path="/dev-admin/demo-builder">
+        <DevAdminLayout><DevAdminDemoBuilder /></DevAdminLayout>
+      </Route>
 
       <Route path="/pricing" component={Pricing} />
       <Route path="/checkout" component={Checkout} />
@@ -115,6 +119,9 @@ function AppRouter() {
       </Route>
       <Route path="/dev-admin/integrations">
         <DevAdminLayout><DevAdminIntegrations /></DevAdminLayout>
+      </Route>
+      <Route path="/dev-admin/demo-builder">
+        <DevAdminLayout><DevAdminDemoBuilder /></DevAdminLayout>
       </Route>
       <Route path="/demo" component={Demo} />
       <Route path="/demo-access/:token" component={DemoAccess} />

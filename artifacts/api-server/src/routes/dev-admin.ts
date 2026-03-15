@@ -1,9 +1,13 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
-import { demoSlotsTable, demoHostsTable, demoBookingsTable, demoRequestsTable, demoAccessTokensTable, liveDemoSessionsTable, tierVideosTable } from "@workspace/db/schema";
-import { eq, sql, count, desc } from "drizzle-orm";
+import { demoSlotsTable, demoHostsTable, demoBookingsTable, demoRequestsTable, demoAccessTokensTable, liveDemoSessionsTable, tierVideosTable, jobsTable, invoicesTable, customersTable, leadsTable } from "@workspace/db/schema";
+import { eq, sql, count, desc, sum, and } from "drizzle-orm";
 import crypto from "crypto";
+
+function getDemoCompanyId() {
+  return parseInt(process.env.DEMO_COMPANY_ID || "1", 10);
+}
 
 const router = Router();
 
@@ -351,6 +355,276 @@ router.get("/integrations", requireDevAdmin, async (_req: DevAdminRequest, res: 
       smsSent: { total: 234, thisMonth: 45, limit: 5000 },
     },
   });
+});
+
+// ─── Demo Data Builder ────────────────────────────────────────────────────────
+
+router.get("/demo-data/overview", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const [jobCount] = await db.select({ c: count() }).from(jobsTable).where(eq(jobsTable.companyId, cid));
+  const [custCount] = await db.select({ c: count() }).from(customersTable).where(eq(customersTable.companyId, cid));
+  const [leadCount] = await db.select({ c: count() }).from(leadsTable).where(eq(leadsTable.companyId, cid));
+  const [invCount] = await db.select({ c: count() }).from(invoicesTable).where(eq(invoicesTable.companyId, cid));
+  const [rev] = await db.select({ total: sum(invoicesTable.total) }).from(invoicesTable)
+    .where(and(eq(invoicesTable.companyId, cid), eq(invoicesTable.status, "paid")));
+  return res.json({
+    jobs: Number(jobCount.c),
+    customers: Number(custCount.c),
+    leads: Number(leadCount.c),
+    invoices: Number(invCount.c),
+    totalRevenue: Number(rev.total || 0),
+    demoCompanyId: cid,
+  });
+});
+
+// ── Customers ──
+router.get("/demo-data/customers", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const rows = await db.select().from(customersTable).where(eq(customersTable.companyId, cid)).orderBy(desc(customersTable.createdAt)).limit(100);
+  return res.json({ customers: rows });
+});
+
+router.post("/demo-data/customers", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const { firstName, lastName, email, phone, city, state } = req.body;
+  if (!firstName || !lastName) return res.status(400).json({ error: "firstName and lastName required" });
+  const [row] = await db.insert(customersTable).values({ companyId: cid, firstName, lastName, email: email || null, phone: phone || null, city: city || null, state: state || null }).returning();
+  return res.status(201).json({ customer: row });
+});
+
+router.delete("/demo-data/customers/:id", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  await db.delete(customersTable).where(and(eq(customersTable.id, Number(req.params.id)), eq(customersTable.companyId, cid)));
+  return res.json({ ok: true });
+});
+
+// ── Jobs ──
+router.get("/demo-data/jobs", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const rows = await db.select().from(jobsTable).where(eq(jobsTable.companyId, cid)).orderBy(desc(jobsTable.createdAt)).limit(100);
+  return res.json({ jobs: rows });
+});
+
+router.post("/demo-data/jobs", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const { title, serviceType, status, actualRevenue, customerId, scheduledStart } = req.body;
+  if (!title) return res.status(400).json({ error: "title required" });
+
+  let custId = customerId ? Number(customerId) : null;
+  if (!custId) {
+    const existing = await db.select({ id: customersTable.id }).from(customersTable).where(eq(customersTable.companyId, cid)).limit(1);
+    if (existing.length > 0) {
+      custId = existing[0].id;
+    } else {
+      const [newCust] = await db.insert(customersTable).values({ companyId: cid, firstName: "Demo", lastName: "Customer" }).returning();
+      custId = newCust.id;
+    }
+  }
+
+  const [row] = await db.insert(jobsTable).values({
+    companyId: cid,
+    customerId: custId,
+    title,
+    serviceType: serviceType || null,
+    status: status || "completed",
+    actualRevenue: actualRevenue ? String(actualRevenue) : null,
+    estimatedRevenue: actualRevenue ? String(actualRevenue) : null,
+    scheduledStart: scheduledStart ? new Date(scheduledStart) : new Date(),
+  }).returning();
+  return res.status(201).json({ job: row });
+});
+
+router.patch("/demo-data/jobs/:id", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const { title, serviceType, status, actualRevenue } = req.body;
+  const [row] = await db.update(jobsTable)
+    .set({
+      ...(title && { title }),
+      ...(serviceType !== undefined && { serviceType }),
+      ...(status && { status }),
+      ...(actualRevenue !== undefined && { actualRevenue: String(actualRevenue), estimatedRevenue: String(actualRevenue) }),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(jobsTable.id, Number(req.params.id)), eq(jobsTable.companyId, cid)))
+    .returning();
+  return res.json({ job: row });
+});
+
+router.delete("/demo-data/jobs/:id", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  await db.delete(jobsTable).where(and(eq(jobsTable.id, Number(req.params.id)), eq(jobsTable.companyId, cid)));
+  return res.json({ ok: true });
+});
+
+// ── Invoices ──
+router.get("/demo-data/invoices", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const rows = await db.select().from(invoicesTable).where(eq(invoicesTable.companyId, cid)).orderBy(desc(invoicesTable.createdAt)).limit(100);
+  return res.json({ invoices: rows });
+});
+
+router.post("/demo-data/invoices", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const { total, status, customerId, dueDate } = req.body;
+  if (!total) return res.status(400).json({ error: "total required" });
+
+  let custId = customerId ? Number(customerId) : null;
+  if (!custId) {
+    const existing = await db.select({ id: customersTable.id }).from(customersTable).where(eq(customersTable.companyId, cid)).limit(1);
+    if (existing.length > 0) {
+      custId = existing[0].id;
+    } else {
+      const [newCust] = await db.insert(customersTable).values({ companyId: cid, firstName: "Demo", lastName: "Customer" }).returning();
+      custId = newCust.id;
+    }
+  }
+
+  const invNum = `INV-${Date.now().toString().slice(-6)}`;
+  const amt = String(total);
+  const [row] = await db.insert(invoicesTable).values({
+    companyId: cid,
+    customerId: custId,
+    invoiceNumber: invNum,
+    status: status || "paid",
+    subtotal: amt,
+    taxRate: "0",
+    taxAmount: "0",
+    total: amt,
+    dueDate: dueDate || null,
+    paidAt: (status === "paid" || !status) ? new Date() : null,
+  }).returning();
+  return res.status(201).json({ invoice: row });
+});
+
+router.delete("/demo-data/invoices/:id", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  await db.delete(invoicesTable).where(and(eq(invoicesTable.id, Number(req.params.id)), eq(invoicesTable.companyId, cid)));
+  return res.json({ ok: true });
+});
+
+// ── Leads ──
+router.get("/demo-data/leads", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const rows = await db.select().from(leadsTable).where(eq(leadsTable.companyId, cid)).orderBy(desc(leadsTable.createdAt)).limit(100);
+  return res.json({ leads: rows });
+});
+
+router.post("/demo-data/leads", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  const { firstName, lastName, email, phone, serviceInterest, status, source, estimatedValue } = req.body;
+  if (!firstName || !lastName) return res.status(400).json({ error: "firstName and lastName required" });
+  const [row] = await db.insert(leadsTable).values({
+    companyId: cid,
+    firstName,
+    lastName,
+    email: email || null,
+    phone: phone || null,
+    serviceInterest: serviceInterest || null,
+    status: status || "new",
+    source: source || null,
+    estimatedValue: estimatedValue ? String(estimatedValue) : null,
+  }).returning();
+  return res.status(201).json({ lead: row });
+});
+
+router.delete("/demo-data/leads/:id", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  await db.delete(leadsTable).where(and(eq(leadsTable.id, Number(req.params.id)), eq(leadsTable.companyId, cid)));
+  return res.json({ ok: true });
+});
+
+// ── Seed Realistic Demo Data ──
+router.post("/demo-data/seed", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+
+  // Create customers
+  const customerData = [
+    { firstName: "James", lastName: "Mitchell", email: "james.mitchell@email.com", phone: "512-555-0101", city: "Austin", state: "TX" },
+    { firstName: "Sarah", lastName: "Chen", email: "sarah.chen@email.com", phone: "512-555-0102", city: "Austin", state: "TX" },
+    { firstName: "Robert", lastName: "Torres", email: "r.torres@email.com", phone: "512-555-0103", city: "Round Rock", state: "TX" },
+    { firstName: "Emily", lastName: "Johnson", email: "emily.j@email.com", phone: "512-555-0104", city: "Cedar Park", state: "TX" },
+    { firstName: "David", lastName: "Williams", email: "dwilliams@email.com", phone: "512-555-0105", city: "Pflugerville", state: "TX" },
+    { firstName: "Lisa", lastName: "Anderson", email: "lisa.a@email.com", phone: "512-555-0106", city: "Austin", state: "TX" },
+    { firstName: "Michael", lastName: "Brown", email: "m.brown@email.com", phone: "512-555-0107", city: "Georgetown", state: "TX" },
+    { firstName: "Jennifer", lastName: "Davis", email: "jen.davis@email.com", phone: "512-555-0108", city: "Austin", state: "TX" },
+  ];
+  const insertedCustomers = await db.insert(customersTable).values(
+    customerData.map(c => ({ ...c, companyId: cid }))
+  ).returning();
+
+  // Create jobs (past 6 months)
+  const serviceTypes = ["HVAC Repair", "AC Installation", "Furnace Service", "Duct Cleaning", "Heat Pump Install", "Maintenance"];
+  const now = new Date();
+  const jobEntries = [];
+  for (let m = 5; m >= 0; m--) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    const jobsThisMonth = 8 + Math.floor(Math.random() * 8); // 8-15 jobs/month
+    for (let j = 0; j < jobsThisMonth; j++) {
+      const day = 1 + Math.floor(Math.random() * 27);
+      const jobDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), day);
+      const revenue = 120 + Math.floor(Math.random() * 880); // $120–$1000
+      const cust = insertedCustomers[Math.floor(Math.random() * insertedCustomers.length)];
+      jobEntries.push({
+        companyId: cid,
+        customerId: cust.id,
+        title: `${serviceTypes[Math.floor(Math.random() * serviceTypes.length)]} — ${cust.firstName} ${cust.lastName}`,
+        serviceType: serviceTypes[Math.floor(Math.random() * serviceTypes.length)],
+        status: "completed" as const,
+        actualRevenue: String(revenue),
+        estimatedRevenue: String(revenue),
+        scheduledStart: jobDate,
+        createdAt: jobDate,
+        updatedAt: jobDate,
+      });
+    }
+  }
+  const insertedJobs = await db.insert(jobsTable).values(jobEntries).returning();
+
+  // Create paid invoices linked to jobs
+  const invoiceEntries = insertedJobs.slice(0, Math.min(insertedJobs.length, 50)).map((job, i) => ({
+    companyId: cid,
+    customerId: job.customerId,
+    jobId: job.id,
+    invoiceNumber: `INV-2026-${String(i + 1).padStart(3, "0")}`,
+    status: "paid" as const,
+    subtotal: job.actualRevenue || "0",
+    taxRate: "8.25",
+    taxAmount: String(Math.round(Number(job.actualRevenue || 0) * 0.0825)),
+    total: String(Math.round(Number(job.actualRevenue || 0) * 1.0825)),
+    paidAt: job.scheduledStart,
+    createdAt: job.scheduledStart || new Date(),
+    updatedAt: job.scheduledStart || new Date(),
+  }));
+  const insertedInvoices = await db.insert(invoicesTable).values(invoiceEntries).returning();
+
+  // Create leads
+  const leadData = [
+    { firstName: "Alex", lastName: "Thompson", email: "alex.t@email.com", phone: "512-555-0201", serviceInterest: "AC Installation", status: "qualified", source: "website", estimatedValue: "2400" },
+    { firstName: "Maria", lastName: "Garcia", email: "m.garcia@email.com", phone: "512-555-0202", serviceInterest: "HVAC Repair", status: "new", source: "referral", estimatedValue: "350" },
+    { firstName: "Chris", lastName: "Lee", email: "chris.lee@email.com", phone: "512-555-0203", serviceInterest: "Duct Cleaning", status: "contacted", source: "google", estimatedValue: "450" },
+    { firstName: "Amanda", lastName: "White", email: "a.white@email.com", phone: "512-555-0204", serviceInterest: "Heat Pump Install", status: "new", source: "facebook", estimatedValue: "3200" },
+    { firstName: "Kevin", lastName: "Martinez", email: "k.martinez@email.com", phone: "512-555-0205", serviceInterest: "Furnace Service", status: "qualified", source: "yelp", estimatedValue: "800" },
+    { firstName: "Rachel", lastName: "Wilson", email: "r.wilson@email.com", phone: "512-555-0206", serviceInterest: "Maintenance Plan", status: "proposal", source: "website", estimatedValue: "1200" },
+  ];
+  const insertedLeads = await db.insert(leadsTable).values(leadData.map(l => ({ ...l, companyId: cid }))).returning();
+
+  return res.json({
+    seeded: true,
+    customers: insertedCustomers.length,
+    jobs: insertedJobs.length,
+    invoices: insertedInvoices.length,
+    leads: insertedLeads.length,
+  });
+});
+
+// ── Reset Demo Data ──
+router.delete("/demo-data/reset", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
+  const cid = getDemoCompanyId();
+  await db.delete(invoicesTable).where(eq(invoicesTable.companyId, cid));
+  await db.delete(jobsTable).where(eq(jobsTable.companyId, cid));
+  await db.delete(leadsTable).where(eq(leadsTable.companyId, cid));
+  await db.delete(customersTable).where(eq(customersTable.companyId, cid));
+  return res.json({ ok: true });
 });
 
 export default router;
