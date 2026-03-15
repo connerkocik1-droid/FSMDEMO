@@ -11,17 +11,13 @@ type Tab = "signin" | "create" | "demo";
 
 const TIER_CONFIG: Record<string, { label: string; price: string; users: string; color: string; token: string }> = {
   free: { label: "Free", price: "Free forever", users: "Up to 3 users", color: "bg-gray-100 text-gray-700 border-gray-200", token: "SERVICEOS-FREE" },
-  independent: { label: "Independent", price: "$39/mo", users: "Up to 6 users", color: "bg-blue-50 text-blue-700 border-blue-200", token: "SERVICEOS-INDIE" },
   pro: { label: "Pro", price: "$99/mo", users: "Up to 25 users", color: "bg-violet-50 text-violet-700 border-violet-200", token: "SERVICEOS-PRO" },
-  franchise: { label: "Franchise", price: "$349/mo", users: "Up to 75 users", color: "bg-amber-50 text-amber-700 border-amber-200", token: "SERVICEOS-FRANCHISE" },
   enterprise: { label: "Enterprise", price: "Custom", users: "200+ users", color: "bg-emerald-50 text-emerald-700 border-emerald-200", token: "SERVICEOS-ENTERPRISE" },
 };
 
 const DEMO_TOKENS: Record<string, string> = {
   "SERVICEOS-FREE": "free",
-  "SERVICEOS-INDIE": "independent",
   "SERVICEOS-PRO": "pro",
-  "SERVICEOS-FRANCHISE": "franchise",
   "SERVICEOS-ENTERPRISE": "enterprise",
 };
 
@@ -177,9 +173,11 @@ export default function LoginPage() {
 
   const handleDemoSignIn = (role: "owner" | "operator") => {
     if (!activatedTier) return;
-    const profile = DEMO_PROFILES.find(p => p.tier === activatedTier && p.role === role)
-      || DEMO_PROFILES.find(p => p.tier === activatedTier)
-      || DEMO_PROFILES[0];
+    const profile = role === "operator"
+      ? DEMO_PROFILES.find(p => p.role === "operator") || DEMO_PROFILES[0]
+      : DEMO_PROFILES.find(p => p.tier === activatedTier && p.role === "owner")
+        || DEMO_PROFILES.find(p => p.tier === activatedTier)
+        || DEMO_PROFILES[0];
     signInAs(profile);
     setDemoSession(true);
     navigate("/dashboard");
@@ -418,25 +416,7 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Choose your plan</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {Object.entries(TIER_CONFIG).slice(0, 3).map(([key, cfg]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setRegTier(key)}
-                        className={`p-2.5 rounded-xl border text-left space-y-1 transition-all ${
-                          regTier === key
-                            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                            : "bg-card hover:border-primary/40"
-                        }`}
-                      >
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
-                        <p className="text-xs font-semibold text-foreground">{cfg.price}</p>
-                        <p className="text-[10px] text-muted-foreground">{cfg.users}</p>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(TIER_CONFIG).slice(3).map(([key, cfg]) => (
+                    {Object.entries(TIER_CONFIG).map(([key, cfg]) => (
                       <button
                         key={key}
                         type="button"
@@ -545,20 +525,7 @@ export default function LoginPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-2.5">
-                {Object.entries(TIER_CONFIG).slice(0, 3).map(([key, cfg]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleRequestToken(key)}
-                    className="p-3 rounded-xl border bg-card hover:border-primary/40 hover:shadow-sm transition-all text-left space-y-1.5"
-                  >
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
-                    <p className="text-xs font-semibold text-foreground">{cfg.price}</p>
-                    <p className="text-[10px] text-muted-foreground">{cfg.users}</p>
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {Object.entries(TIER_CONFIG).slice(3).map(([key, cfg]) => (
+                {Object.entries(TIER_CONFIG).map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => handleRequestToken(key)}

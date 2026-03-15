@@ -26,5 +26,5 @@ export interface QuoteResponse {
   headline: string;
 }
 
-export type WizardStep = 0 | 1 | 2 | "processing" | "quote";
+export type WizardStep = 0 | 1 | 2 | 3 | "processing" | "quote";
 export type BillingPeriod = "monthly" | "annual";
