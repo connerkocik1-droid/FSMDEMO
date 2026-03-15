@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Palette, Building2, Plus, Trash2, Send,
-  Sparkles, Save, ChevronDown, ChevronUp, Check, Loader2,
-  DollarSign, User, Calendar, Hash, Wand2
+  Sparkles, Save, Check, Loader2,
+  DollarSign, User, Wand2, AlignLeft, AlignCenter, AlignRight,
+  Type, Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,19 +28,53 @@ const US_STATES = [
 ];
 
 const INVOICE_STYLES = [
-  { id: "modern", label: "Modern", desc: "Clean lines, bold headers" },
+  { id: "modern",  label: "Modern",  desc: "Clean lines, bold headers" },
   { id: "classic", label: "Classic", desc: "Traditional, professional" },
   { id: "minimal", label: "Minimal", desc: "Simple, whitespace-first" },
 ];
 
-const PAYMENT_TERMS = [
-  { id: "due_on_receipt", label: "Due on Receipt" },
-  { id: "net15", label: "Net 15" },
-  { id: "net30", label: "Net 30" },
-  { id: "net60", label: "Net 60" },
+const FONT_OPTIONS = [
+  { id: "inter",    label: "Inter",      stack: "Inter, system-ui, sans-serif" },
+  { id: "georgia",  label: "Georgia",    stack: "Georgia, 'Times New Roman', serif" },
+  { id: "mono",     label: "Monospace",  stack: "'Courier New', Courier, monospace" },
+  { id: "system",   label: "System",     stack: "system-ui, -apple-system, sans-serif" },
 ];
 
+const PAYMENT_TERMS = [
+  { id: "due_on_receipt", label: "Due on Receipt" },
+  { id: "net15",  label: "Net 15" },
+  { id: "net30",  label: "Net 30" },
+  { id: "net60",  label: "Net 60" },
+];
+
+const LOGO_SIZES: Record<string, number> = { sm: 40, md: 64, lg: 96 };
+
 type LineItem = { id: string; description: string; quantity: string; unitPrice: string };
+
+type Template = {
+  logoUrl: string;
+  primaryColor: string;
+  accentColor: string;
+  style: string;
+  fontFamily: string;
+  logoSize: "sm" | "md" | "lg";
+  logoPosition: "left" | "center" | "right";
+  companyName: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  zip: string;
+  taxRate: string;
+  paymentTerms: string;
+  footerText: string;
+};
+
+const DEFAULT_TMPL: Template = {
+  logoUrl: "", primaryColor: "#185FA5", accentColor: "#0F3F75",
+  style: "modern", fontFamily: "inter", logoSize: "md", logoPosition: "left",
+  companyName: "", addressLine1: "", city: "", state: "", zip: "",
+  taxRate: "0", paymentTerms: "net30", footerText: "",
+};
 
 function apiFetch(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -67,23 +102,188 @@ function newItem(): LineItem {
   return { id: crypto.randomUUID(), description: "", quantity: "1", unitPrice: "" };
 }
 
+const SAMPLE_ITEMS = [
+  { description: "HVAC Inspection & Tune-up", quantity: 1, unitPrice: 180 },
+  { description: "Refrigerant Recharge (2 lbs)", quantity: 2, unitPrice: 65 },
+  { description: "Filter Replacement", quantity: 1, unitPrice: 35 },
+];
+
+function InvoicePreview({ tmpl }: { tmpl: Template }) {
+  const font = FONT_OPTIONS.find(f => f.id === tmpl.fontFamily) || FONT_OPTIONS[0];
+  const logoH = LOGO_SIZES[tmpl.logoSize] || 64;
+  const subtotal = SAMPLE_ITEMS.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+  const taxRate = parseFloat(tmpl.taxRate) || 0;
+  const tax = subtotal * (taxRate / 100);
+  const total = subtotal + tax;
+
+  const isModern  = tmpl.style === "modern";
+  const isClassic = tmpl.style === "classic";
+  const isMinimal = tmpl.style === "minimal";
+
+  const headerBg = isMinimal ? "#fff" : tmpl.primaryColor;
+  const headerText = isMinimal ? tmpl.primaryColor : "#fff";
+
+  const logoAlignClass =
+    tmpl.logoPosition === "center" ? "items-center text-center" :
+    tmpl.logoPosition === "right"  ? "items-end text-right" : "items-start text-left";
+
+  return (
+    <div
+      className="w-full rounded-xl overflow-hidden shadow-lg border"
+      style={{ fontFamily: font.stack, fontSize: "11px", background: "#fff", color: "#1a1a1a" }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          background: headerBg,
+          color: headerText,
+          padding: isMinimal ? "20px 24px 14px" : "20px 24px",
+          borderBottom: isMinimal ? `3px solid ${tmpl.primaryColor}` : "none",
+        }}
+      >
+        <div className={cn("flex flex-col gap-2", logoAlignClass)}>
+          {tmpl.logoUrl ? (
+            <img
+              src={tmpl.logoUrl}
+              alt="logo"
+              style={{ height: logoH, width: "auto", maxWidth: "100%", objectFit: "contain" }}
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          ) : (
+            <div
+              style={{
+                height: logoH,
+                width: logoH * 2.5,
+                background: isMinimal ? tmpl.primaryColor + "18" : "#ffffff30",
+                border: `1.5px dashed ${isMinimal ? tmpl.primaryColor + "60" : "#ffffff60"}`,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isMinimal ? tmpl.primaryColor + "80" : "#ffffff80",
+                fontSize: 10,
+                gap: 4,
+              }}
+            >
+              <ImageIcon size={14} /> Logo
+            </div>
+          )}
+          <div>
+            <div style={{ fontWeight: 700, fontSize: isModern ? 15 : 13, letterSpacing: isModern ? "-0.02em" : 0 }}>
+              {tmpl.companyName || "Your Company Name"}
+            </div>
+            {(tmpl.addressLine1 || tmpl.city) && (
+              <div style={{ opacity: 0.85, fontSize: 10, marginTop: 2 }}>
+                {[tmpl.addressLine1, [tmpl.city, tmpl.state, tmpl.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Invoice Meta */}
+      <div style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #e5e7eb" }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: tmpl.primaryColor }}>INVOICE</div>
+          <div style={{ color: "#6b7280", marginTop: 4 }}>
+            <span style={{ fontWeight: 600, color: "#374151" }}>INV-2026-042</span>
+          </div>
+        </div>
+        <div style={{ textAlign: "right", color: "#6b7280", lineHeight: 1.8 }}>
+          <div><span style={{ fontWeight: 600 }}>Date:</span> Mar 15, 2026</div>
+          <div><span style={{ fontWeight: 600 }}>Due:</span> Apr 14, 2026</div>
+          <div>
+            <span style={{ fontWeight: 600 }}>Terms:</span>{" "}
+            {PAYMENT_TERMS.find(p => p.id === tmpl.paymentTerms)?.label || "Net 30"}
+          </div>
+        </div>
+      </div>
+
+      {/* Bill To */}
+      <div style={{ padding: "12px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", gap: 40 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", color: "#9ca3af", marginBottom: 4 }}>
+            Bill To
+          </div>
+          <div style={{ fontWeight: 600, color: "#111827" }}>John Smith</div>
+          <div style={{ color: "#6b7280" }}>john.smith@email.com</div>
+          <div style={{ color: "#6b7280" }}>456 Oak Ave, Dallas TX 75201</div>
+        </div>
+      </div>
+
+      {/* Line Items */}
+      <div style={{ padding: "0 24px 12px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+          <thead>
+            <tr style={{ background: isMinimal ? "#f9fafb" : tmpl.primaryColor + "12", borderBottom: `2px solid ${tmpl.primaryColor}` }}>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: tmpl.primaryColor }}>Description</th>
+              <th style={{ textAlign: "center", padding: "6px 8px", fontWeight: 700, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: tmpl.primaryColor, width: 40 }}>Qty</th>
+              <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: tmpl.primaryColor, width: 60 }}>Unit</th>
+              <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 700, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: tmpl.primaryColor, width: 60 }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SAMPLE_ITEMS.map((item, i) => (
+              <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 1 && !isMinimal ? "#fafafa" : "#fff" }}>
+                <td style={{ padding: "7px 8px", color: "#374151" }}>{item.description}</td>
+                <td style={{ padding: "7px 8px", textAlign: "center", color: "#6b7280" }}>{item.quantity}</td>
+                <td style={{ padding: "7px 8px", textAlign: "right", color: "#6b7280" }}>{fmtMoney(item.unitPrice)}</td>
+                <td style={{ padding: "7px 8px", textAlign: "right", fontWeight: 600, color: "#111827" }}>{fmtMoney(item.quantity * item.unitPrice)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Totals */}
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ minWidth: 180 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "#6b7280" }}>
+              <span>Subtotal</span><span>{fmtMoney(subtotal)}</span>
+            </div>
+            {taxRate > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "#6b7280" }}>
+                <span>Tax ({taxRate}%)</span><span>{fmtMoney(tax)}</span>
+              </div>
+            )}
+            <div style={{
+              display: "flex", justifyContent: "space-between",
+              padding: "6px 8px", marginTop: 6, borderRadius: 6,
+              background: tmpl.primaryColor,
+              color: "#fff", fontWeight: 700, fontSize: 13,
+            }}>
+              <span>Total</span><span>{fmtMoney(total)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      {(tmpl.footerText || true) && (
+        <div style={{
+          padding: "10px 24px",
+          borderTop: `1px solid ${tmpl.primaryColor}30`,
+          background: tmpl.primaryColor + "08",
+          color: "#9ca3af",
+          fontSize: 9,
+          textAlign: "center",
+        }}>
+          {tmpl.footerText || "Thank you for your business!"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function InvoiceManager() {
   const [activeSection, setActiveSection] = useState<"template" | "create">("template");
 
-  const [tmpl, setTmpl] = useState({
-    logoUrl: "", primaryColor: "#185FA5", accentColor: "#0F3F75",
-    style: "modern", companyName: "", addressLine1: "",
-    city: "", state: "", zip: "", taxRate: "0",
-    paymentTerms: "net30", footerText: "",
-  });
+  const [tmpl, setTmpl] = useState<Template>(DEFAULT_TMPL);
   const [tmplLoading, setTmplLoading] = useState(true);
   const [tmplSaving, setTmplSaving] = useState(false);
   const [tmplSaved, setTmplSaved] = useState(false);
 
   const [customers, setCustomers] = useState<any[]>([]);
-  const [invoice, setInvoice] = useState({
-    customerId: "", dueDate: "", notes: "",
-  });
+  const [invoice, setInvoice] = useState({ customerId: "", dueDate: "", notes: "" });
   const [lineItems, setLineItems] = useState<LineItem[]>([newItem()]);
   const [invoiceTaxRate, setInvoiceTaxRate] = useState("0");
   const [creating, setCreating] = useState(false);
@@ -102,18 +302,21 @@ export default function InvoiceManager() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setTmpl({
-          logoUrl: data.logoUrl || "",
-          primaryColor: data.primaryColor || "#185FA5",
-          accentColor: data.accentColor || "#0F3F75",
-          style: data.style || "modern",
-          companyName: data.companyName || "",
-          addressLine1: data.addressLine1 || "",
-          city: data.city || "",
-          state: data.state || "",
-          zip: data.zip || "",
-          taxRate: data.taxRate || "0",
-          paymentTerms: data.paymentTerms || "net30",
-          footerText: data.footerText || "",
+          logoUrl:       data.logoUrl       || "",
+          primaryColor:  data.primaryColor  || "#185FA5",
+          accentColor:   data.accentColor   || "#0F3F75",
+          style:         data.style         || "modern",
+          fontFamily:    data.fontFamily    || "inter",
+          logoSize:      data.logoSize      || "md",
+          logoPosition:  data.logoPosition  || "left",
+          companyName:   data.companyName   || "",
+          addressLine1:  data.addressLine1  || "",
+          city:          data.city          || "",
+          state:         data.state         || "",
+          zip:           data.zip           || "",
+          taxRate:       data.taxRate       || "0",
+          paymentTerms:  data.paymentTerms  || "net30",
+          footerText:    data.footerText    || "",
         });
       })
       .finally(() => setTmplLoading(false));
@@ -123,9 +326,7 @@ export default function InvoiceManager() {
       .then(data => setCustomers(data.customers || []));
   }, []);
 
-  useEffect(() => {
-    setInvoiceTaxRate(tmpl.taxRate || "0");
-  }, [tmpl.taxRate]);
+  useEffect(() => { setInvoiceTaxRate(tmpl.taxRate || "0"); }, [tmpl.taxRate]);
 
   const handleStateChange = useCallback(async (state: string) => {
     setTmpl(t => ({ ...t, state }));
@@ -146,31 +347,24 @@ export default function InvoiceManager() {
         method: "PUT",
         body: JSON.stringify(tmpl),
       });
-      if (r.ok) {
-        setTmplSaved(true);
-        setTimeout(() => setTmplSaved(false), 2500);
-      }
-    } finally {
-      setTmplSaving(false);
-    }
+      if (r.ok) { setTmplSaved(true); setTimeout(() => setTmplSaved(false), 2500); }
+    } finally { setTmplSaving(false); }
   };
 
-  const addLineItem = () => setLineItems(prev => [...prev, newItem()]);
+  const addLineItem    = () => setLineItems(prev => [...prev, newItem()]);
   const removeLineItem = (id: string) => setLineItems(prev => prev.filter(i => i.id !== id));
   const updateLineItem = (id: string, field: keyof LineItem, value: string) =>
     setLineItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
 
-  const subtotal = lineItems.reduce((sum, item) => {
-    return sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
-  }, 0);
+  const subtotal = lineItems.reduce((sum, item) =>
+    sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0), 0);
   const taxAmount = subtotal * (parseFloat(invoiceTaxRate) / 100);
   const total = subtotal + taxAmount;
 
   const createInvoice = async (sendToCustomer: boolean) => {
     if (!invoice.customerId) return;
     const fn = sendToCustomer ? setSending : setCreating;
-    fn(true);
-    setCreateSuccess(null);
+    fn(true); setCreateSuccess(null);
     try {
       const r = await apiFetch("/invoice-manager/create-with-items", {
         method: "POST",
@@ -200,22 +394,15 @@ export default function InvoiceManager() {
         setInvoice({ customerId: "", dueDate: "", notes: "" });
         setLineItems([newItem()]);
       }
-    } finally {
-      fn(false);
-    }
+    } finally { fn(false); }
   };
 
   const runAiSuggest = async () => {
-    setAiLoading(true);
-    setAiError(null);
+    setAiLoading(true); setAiError(null);
     try {
       const r = await apiFetch("/invoice-manager/ai-suggest-items", {
         method: "POST",
-        body: JSON.stringify({
-          serviceDescription: aiDesc,
-          jobType: aiJobType,
-          estimatedValue: aiEstimate,
-        }),
+        body: JSON.stringify({ serviceDescription: aiDesc, jobType: aiJobType, estimatedValue: aiEstimate }),
       });
       if (r.ok) {
         const data = await r.json();
@@ -226,40 +413,27 @@ export default function InvoiceManager() {
           unitPrice: String(item.unitPrice || 0),
         }));
         setLineItems(newItems.length > 0 ? newItems : [newItem()]);
-        setAiOpen(false);
-        setAiDesc(""); setAiJobType(""); setAiEstimate("");
-      } else {
-        setAiError("AI generation failed. Please try again.");
-      }
-    } catch {
-      setAiError("Network error. Please try again.");
-    } finally {
-      setAiLoading(false);
-    }
+        setAiOpen(false); setAiDesc(""); setAiJobType(""); setAiEstimate("");
+      } else { setAiError("AI generation failed. Please try again."); }
+    } catch { setAiError("Network error. Please try again."); }
+    finally { setAiLoading(false); }
   };
 
   const inputCls = "w-full bg-background border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30";
 
   return (
-    <div className="space-y-6 mt-10">
-      <div>
-        <h2 className="text-2xl font-display font-bold text-foreground">Invoice Manager</h2>
-        <p className="text-muted-foreground mt-1">Create professional invoices and manage your billing template.</p>
-      </div>
-
+    <div className="space-y-6">
       <div className="flex gap-2 bg-muted/50 p-1 rounded-xl w-fit">
         {[
           { id: "template", label: "Invoice Template", icon: Palette },
-          { id: "create", label: "Create an Invoice", icon: FileText },
+          { id: "create",   label: "Create an Invoice", icon: FileText },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveSection(id as any)}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              activeSection === id
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              activeSection === id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Icon className="w-4 h-4" />
@@ -268,35 +442,28 @@ export default function InvoiceManager() {
         ))}
       </div>
 
+      {/* ── TEMPLATE TAB ── */}
       {activeSection === "template" && (
-        <div className="space-y-6">
-          {tmplLoading ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            <>
-              <div className="bg-card border rounded-2xl p-6 space-y-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-foreground">Brand & Style</h3>
+        tmplLoading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6 items-start">
+
+            {/* ── Controls ── */}
+            <div className="space-y-5">
+
+              {/* Brand & Style */}
+              <div className="bg-card border rounded-2xl p-5 space-y-5">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground text-sm">Brand & Identity</h3>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Logo URL</label>
-                    <input
-                      type="url"
-                      value={tmpl.logoUrl}
-                      onChange={e => setTmpl(t => ({ ...t, logoUrl: e.target.value }))}
-                      placeholder="https://your-domain.com/logo.png"
-                      className={inputCls}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Paste a public image URL (PNG, JPG, SVG)</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Company Name on Invoice</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Company Name</label>
                     <input
                       type="text"
                       value={tmpl.companyName}
@@ -305,17 +472,80 @@ export default function InvoiceManager() {
                       className={inputCls}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Logo URL</label>
+                    <input
+                      type="url"
+                      value={tmpl.logoUrl}
+                      onChange={e => setTmpl(t => ({ ...t, logoUrl: e.target.value }))}
+                      placeholder="https://…/logo.png"
+                      className={inputCls}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG, or SVG</p>
+                  </div>
+                </div>
+
+                {/* Logo Size */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" /> Logo Size
+                  </label>
+                  <div className="flex gap-2">
+                    {(["sm", "md", "lg"] as const).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setTmpl(t => ({ ...t, logoSize: s }))}
+                        className={cn(
+                          "flex-1 py-2 rounded-lg border text-sm font-medium transition-all",
+                          tmpl.logoSize === s ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
+                        )}
+                      >
+                        {s === "sm" ? "Small" : s === "md" ? "Medium" : "Large"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Logo Position */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Logo Position</label>
+                  <div className="flex gap-2">
+                    {([
+                      { id: "left",   icon: AlignLeft   },
+                      { id: "center", icon: AlignCenter },
+                      { id: "right",  icon: AlignRight  },
+                    ] as const).map(({ id, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => setTmpl(t => ({ ...t, logoPosition: id }))}
+                        className={cn(
+                          "flex-1 py-2 rounded-lg border flex items-center justify-center gap-1.5 text-sm font-medium transition-all capitalize",
+                          tmpl.logoPosition === id ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" /> {id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Colors & Font */}
+              <div className="bg-card border rounded-2xl p-5 space-y-5">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground text-sm">Colors & Typography</h3>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Primary Color</label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <input
                         type="color"
                         value={tmpl.primaryColor}
                         onChange={e => setTmpl(t => ({ ...t, primaryColor: e.target.value }))}
-                        className="w-10 h-10 rounded-lg border cursor-pointer"
+                        className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
                       />
                       <input
                         type="text"
@@ -328,12 +558,12 @@ export default function InvoiceManager() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Accent Color</label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <input
                         type="color"
                         value={tmpl.accentColor}
                         onChange={e => setTmpl(t => ({ ...t, accentColor: e.target.value }))}
-                        className="w-10 h-10 rounded-lg border cursor-pointer"
+                        className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
                       />
                       <input
                         type="text"
@@ -346,31 +576,54 @@ export default function InvoiceManager() {
                   </div>
                 </div>
 
+                {/* Font */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Invoice Style</label>
+                  <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                    <Type className="w-3.5 h-3.5 text-muted-foreground" /> Font Family
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {FONT_OPTIONS.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setTmpl(t => ({ ...t, fontFamily: f.id }))}
+                        style={{ fontFamily: f.stack }}
+                        className={cn(
+                          "py-2.5 rounded-lg border text-sm transition-all",
+                          tmpl.fontFamily === f.id
+                            ? "border-primary bg-primary/5 text-primary font-semibold"
+                            : "border-border text-muted-foreground hover:border-primary/40"
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Style */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Layout Style</label>
                   <div className="grid grid-cols-3 gap-3">
                     {INVOICE_STYLES.map(style => (
                       <button
                         key={style.id}
                         onClick={() => setTmpl(t => ({ ...t, style: style.id }))}
                         className={cn(
-                          "relative p-4 rounded-xl border-2 text-left transition-all",
-                          tmpl.style === style.id
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40"
+                          "relative p-3 rounded-xl border-2 text-left transition-all",
+                          tmpl.style === style.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
                         )}
                       >
                         {tmpl.style === style.id && (
-                          <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                            <Check className="w-3 h-3 text-white" />
+                          <div className="absolute top-2 right-2 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 text-white" />
                           </div>
                         )}
-                        <div className="space-y-1 mb-3">
+                        <div className="space-y-0.5 mb-2">
                           <div className="h-1.5 rounded bg-current opacity-30 w-full" />
                           <div className="h-1 rounded bg-current opacity-15 w-3/4" />
                           <div className="h-1 rounded bg-current opacity-10 w-1/2" />
                         </div>
-                        <p className="font-semibold text-sm text-foreground">{style.label}</p>
+                        <p className="font-semibold text-xs text-foreground">{style.label}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{style.desc}</p>
                       </button>
                     ))}
@@ -378,10 +631,11 @@ export default function InvoiceManager() {
                 </div>
               </div>
 
-              <div className="bg-card border rounded-2xl p-6 space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-foreground">Business Address & Tax</h3>
+              {/* Address & Tax */}
+              <div className="bg-card border rounded-2xl p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground text-sm">Business Address & Tax</h3>
                 </div>
 
                 <div>
@@ -435,17 +689,12 @@ export default function InvoiceManager() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">Sales Tax Rate</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {tmpl.state
-                        ? `Auto-calculated for ${tmpl.state} — you can override below`
-                        : "Select a state to auto-populate, or enter manually"}
+                      {tmpl.state ? `Auto-calculated for ${tmpl.state} — override below` : "Select a state to auto-fill, or enter manually"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.001"
+                      type="number" min="0" max="20" step="0.001"
                       value={tmpl.taxRate}
                       onChange={e => setTmpl(t => ({ ...t, taxRate: e.target.value }))}
                       className="w-20 bg-background border rounded-xl px-3 py-2 text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -455,8 +704,9 @@ export default function InvoiceManager() {
                 </div>
               </div>
 
-              <div className="bg-card border rounded-2xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground">Payment Terms & Footer</h3>
+              {/* Terms & Footer */}
+              <div className="bg-card border rounded-2xl p-5 space-y-4">
+                <h3 className="font-semibold text-foreground text-sm">Payment Terms & Footer</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Default Payment Terms</label>
@@ -471,7 +721,7 @@ export default function InvoiceManager() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Invoice Footer Text</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Footer Text</label>
                     <input
                       type="text"
                       value={tmpl.footerText}
@@ -483,7 +733,7 @@ export default function InvoiceManager() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end pb-2">
                 <button
                   onClick={saveTemplate}
                   disabled={tmplSaving}
@@ -493,13 +743,30 @@ export default function InvoiceManager() {
                   {tmplSaved ? "Saved!" : "Save Template"}
                 </button>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+
+            {/* ── Live Preview ── */}
+            <div className="xl:sticky xl:top-6">
+              <div className="bg-muted/30 border rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Sample data</span>
+                </div>
+                <div className="overflow-hidden rounded-xl shadow-sm">
+                  <InvoicePreview tmpl={tmpl} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Changes reflect instantly · Sample line items shown
+                </p>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
+      {/* ── CREATE TAB ── */}
       {activeSection === "create" && (
-        <div className="space-y-5">
+        <div className="space-y-5 max-w-3xl">
           {createSuccess && (
             <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-800">
               <Check className="w-5 h-5 shrink-0" />
@@ -541,228 +808,164 @@ export default function InvoiceManager() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Notes</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Notes / Instructions</label>
               <textarea
                 value={invoice.notes}
                 onChange={e => setInvoice(i => ({ ...i, notes: e.target.value }))}
-                placeholder="Add any notes or instructions for the customer..."
+                placeholder="Payment instructions, warranty notes, etc."
                 rows={2}
                 className={cn(inputCls, "resize-none")}
               />
             </div>
           </div>
 
+          {/* Line Items */}
           <div className="bg-card border rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Hash className="w-5 h-5 text-primary" />
+                <DollarSign className="w-5 h-5 text-primary" />
                 <h3 className="font-semibold text-foreground">Line Items</h3>
               </div>
               <button
-                onClick={() => setAiOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 rounded-lg text-sm font-medium transition-all"
+                onClick={() => setAiOpen(o => !o)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-all"
               >
-                <Wand2 className="w-4 h-4" />
-                AI Generate
+                <Wand2 className="w-3.5 h-3.5" />
+                AI Suggest
               </button>
             </div>
 
-            <div className="space-y-2">
-              <div className="grid grid-cols-12 gap-2 px-1">
-                <div className="col-span-6 text-xs font-medium text-muted-foreground">Description</div>
-                <div className="col-span-2 text-xs font-medium text-muted-foreground text-right">Qty</div>
-                <div className="col-span-3 text-xs font-medium text-muted-foreground text-right">Unit Price</div>
-                <div className="col-span-1" />
+            {aiOpen && (
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 space-y-3">
+                <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> AI Line Item Generator
+                </p>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <input
+                    type="text" placeholder="Service description"
+                    value={aiDesc}
+                    onChange={e => setAiDesc(e.target.value)}
+                    className={inputCls}
+                  />
+                  <input
+                    type="text" placeholder="Job type (HVAC, plumbing…)"
+                    value={aiJobType}
+                    onChange={e => setAiJobType(e.target.value)}
+                    className={inputCls}
+                  />
+                  <input
+                    type="text" placeholder="Est. value ($)"
+                    value={aiEstimate}
+                    onChange={e => setAiEstimate(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+                {aiError && <p className="text-xs text-red-500">{aiError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={runAiSuggest}
+                    disabled={aiLoading || !aiDesc}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-60"
+                  >
+                    {aiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Generate Items
+                  </button>
+                  <button onClick={() => setAiOpen(false)} className="px-4 py-2 text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                </div>
               </div>
+            )}
 
-              {lineItems.map((item, idx) => {
-                const amt = (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
-                return (
-                  <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-muted/30 rounded-xl p-2">
-                    <div className="col-span-6">
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={e => updateLineItem(item.id, "description", e.target.value)}
-                        placeholder={`Service or item ${idx + 1}`}
-                        className="w-full bg-background border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={e => updateLineItem(item.id, "quantity", e.target.value)}
-                        min="0"
-                        step="0.5"
-                        className="w-full bg-background border rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
-                    <div className="col-span-3 flex items-center gap-1">
-                      <span className="text-muted-foreground text-sm">$</span>
-                      <input
-                        type="number"
-                        value={item.unitPrice}
-                        onChange={e => updateLineItem(item.id, "unitPrice", e.target.value)}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="w-full bg-background border rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
-                    <div className="col-span-1 flex justify-end">
-                      {lineItems.length > 1 && (
-                        <button
-                          onClick={() => removeLineItem(item.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    {amt > 0 && (
-                      <div className="col-span-12 px-1 -mt-1">
-                        <p className="text-xs text-muted-foreground text-right">{fmtMoney(amt)}</p>
-                      </div>
-                    )}
+            <div className="space-y-2">
+              <div className="grid grid-cols-[1fr_70px_90px_36px] gap-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Qty</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Unit Price</span>
+                <span />
+              </div>
+              {lineItems.map((item) => (
+                <div key={item.id} className="grid grid-cols-[1fr_70px_90px_36px] gap-2 items-center">
+                  <input
+                    type="text"
+                    value={item.description}
+                    onChange={e => updateLineItem(item.id, "description", e.target.value)}
+                    placeholder="Service or part description"
+                    className={inputCls}
+                  />
+                  <input
+                    type="number" min="0" step="1"
+                    value={item.quantity}
+                    onChange={e => updateLineItem(item.id, "quantity", e.target.value)}
+                    className={cn(inputCls, "text-center")}
+                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={item.unitPrice}
+                      onChange={e => updateLineItem(item.id, "unitPrice", e.target.value)}
+                      placeholder="0.00"
+                      className={cn(inputCls, "pl-6 text-right")}
+                    />
                   </div>
-                );
-              })}
-
+                  <button
+                    onClick={() => removeLineItem(item.id)}
+                    className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
               <button
                 onClick={addLineItem}
-                className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors mt-1"
+                className="flex items-center gap-1.5 text-sm text-primary hover:underline font-medium mt-1"
               >
                 <Plus className="w-4 h-4" /> Add line item
               </button>
             </div>
 
-            <div className="mt-4 pt-4 border-t space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Subtotal</span>
-                <span className="text-sm font-medium">{fmtMoney(subtotal)}</span>
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Tax</span>
-                  <div className="flex items-center gap-1">
+            {/* Totals */}
+            <div className="border-t pt-4 flex justify-end">
+              <div className="space-y-1.5 min-w-[200px]">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span><span>{fmtMoney(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground gap-3">
+                  <span className="flex items-center gap-1.5">
+                    Tax
                     <input
-                      type="number"
+                      type="number" min="0" max="20" step="0.001"
                       value={invoiceTaxRate}
                       onChange={e => setInvoiceTaxRate(e.target.value)}
-                      min="0"
-                      max="20"
-                      step="0.001"
-                      className="w-16 bg-background border rounded-lg px-2 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-14 text-right bg-background border rounded-lg px-2 py-0.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                    <span className="text-xs text-muted-foreground">%</span>
-                  </div>
+                    %
+                  </span>
+                  <span>{fmtMoney(taxAmount)}</span>
                 </div>
-                <span className="text-sm font-medium">{fmtMoney(taxAmount)}</span>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                <span className="font-bold text-foreground">Total</span>
-                <span className="text-xl font-bold text-primary">{fmtMoney(total)}</span>
+                <div className="flex justify-between text-base font-bold text-foreground border-t pt-2">
+                  <span>Total</span><span>{fmtMoney(total)}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+          <div className="flex gap-3 justify-end">
             <button
               onClick={() => createInvoice(false)}
-              disabled={!invoice.customerId || creating || sending}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 border-2 border-primary text-primary hover:bg-primary/5 font-semibold rounded-xl disabled:opacity-50 transition-all"
+              disabled={creating || !invoice.customerId}
+              className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-foreground font-medium rounded-xl hover:bg-secondary/80 disabled:opacity-50 transition-all"
             >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save as Draft
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              Save Draft
             </button>
             <button
               onClick={() => createInvoice(true)}
-              disabled={!invoice.customerId || creating || sending}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-all"
+              disabled={sending || !invoice.customerId}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-all"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Send to Customer
             </button>
-          </div>
-        </div>
-      )}
-
-      {aiOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-2xl border shadow-2xl w-full max-w-lg">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-violet-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground">AI Invoice Generator</h3>
-                  <p className="text-sm text-muted-foreground">Describe the job and AI will suggest line items</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Service Description *</label>
-                  <textarea
-                    value={aiDesc}
-                    onChange={e => setAiDesc(e.target.value)}
-                    placeholder="e.g. Replaced HVAC unit, cleaned ducts, installed new thermostat..."
-                    rows={3}
-                    className={cn(inputCls, "resize-none")}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Job Type</label>
-                    <input
-                      type="text"
-                      value={aiJobType}
-                      onChange={e => setAiJobType(e.target.value)}
-                      placeholder="HVAC, Plumbing, Lawn..."
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Estimated Value</label>
-                    <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground text-sm">$</span>
-                      <input
-                        type="number"
-                        value={aiEstimate}
-                        onChange={e => setAiEstimate(e.target.value)}
-                        placeholder="850"
-                        className={cn(inputCls, "flex-1")}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {aiError && (
-                <p className="mt-3 text-sm text-destructive">{aiError}</p>
-              )}
-
-              <div className="flex gap-3 mt-5">
-                <button
-                  onClick={() => { setAiOpen(false); setAiError(null); }}
-                  className="flex-1 py-2.5 border rounded-xl text-sm font-medium hover:bg-muted/50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={runAiSuggest}
-                  disabled={!aiDesc.trim() || aiLoading}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-50 transition-all"
-                >
-                  {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {aiLoading ? "Generating..." : "Generate Items"}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
