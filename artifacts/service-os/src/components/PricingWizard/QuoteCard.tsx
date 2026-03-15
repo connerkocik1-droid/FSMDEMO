@@ -11,7 +11,7 @@ interface QuoteCardProps {
   quote: QuoteResponse;
   sessionId: string;
   onStartOver: () => void;
-  initialAddonKeys?: string[];
+  initialAddonKeys?: string[] | null;
 }
 
 function calcTotal(quote: QuoteResponse, addonStates: Record<string, boolean>, billingPeriod: BillingPeriod): number {
@@ -47,13 +47,13 @@ const TIER_COLORS = {
 };
 const TIER_LABELS = { free: "Free", pro: "Pro", enterprise: "Enterprise" };
 
-export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = [] }: QuoteCardProps) {
+export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = null }: QuoteCardProps) {
   const [, navigate] = useLocation();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const [addonStates, setAddonStates] = useState<Record<string, boolean>>(
     Object.fromEntries(quote.suggested_addons.map(a => [
       a.addon_key,
-      initialAddonKeys.length > 0 ? initialAddonKeys.includes(a.addon_key) : a.default_on,
+      initialAddonKeys !== null ? initialAddonKeys.includes(a.addon_key) : a.default_on,
     ]))
   );
   const [breakdownOpen, setBreakdownOpen] = useState(false);
