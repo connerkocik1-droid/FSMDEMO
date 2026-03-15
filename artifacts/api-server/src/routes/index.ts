@@ -22,6 +22,7 @@ import blogRouter from "./blog.js";
 import emailSubscribeRouter from "./email-subscribe.js";
 import devAdminRouter from "./dev-admin.js";
 import invoiceManagerRouter from "./invoice-manager.js";
+import wizardRouter from "./wizard.js";
 
 const router: IRouter = Router();
 
@@ -49,5 +50,6 @@ router.use("/billing", billingRouter);
 router.use("/invoice-manager", invoiceManagerRouter);
 router.use("/blog", blogRouter);
 router.use("/email", emailSubscribeRouter);
+router.use("/wizard", wizardRouter);
 
 export default router;

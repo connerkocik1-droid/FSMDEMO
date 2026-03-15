@@ -5,6 +5,7 @@ import { SEO } from "@/components/SEO";
 import { softwareAppSchema } from "@/lib/seo";
 import { trackPricingView, trackCTAClick } from "@/lib/analytics";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+import { PricingWizard } from "@/components/PricingWizard";
 import {
   ArrowRight,
   CheckCircle2,
@@ -94,37 +95,44 @@ export default function Landing() {
 
 function HeroSection() {
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+    <section className="relative pt-24 pb-16 md:pt-36 md:pb-24 overflow-hidden">
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8">
-          <SparklesIcon className="w-4 h-4" />
-          The Operating System for Modern Service Teams
-        </div>
-        <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground tracking-tight max-w-4xl mx-auto leading-tight">
-          Run your entire service business on autopilot.
-        </h1>
-        <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto">
-          From automated dispatch to AI-powered SMS communication, ServiceOS gives your team the tools to scale without the chaos.
-        </p>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/demo"
-            onClick={() => trackCTAClick("hero_demo", "hero")}
-            className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center"
-          >
-            Get a Demo <ArrowRight className="w-5 h-5" />
-          </Link>
-          <Link
-            href="/signup"
-            className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
-          >
-            Start Free
-          </Link>
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left: headline text */}
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+              <SparklesIcon className="w-4 h-4" />
+              The Operating System for Modern Service Teams
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground tracking-tight leading-tight">
+              The operating system for service businesses.
+            </h1>
+            <p className="mt-5 text-lg text-muted-foreground max-w-lg lg:max-w-none">
+              Get a personalised quote for your team in 60 seconds.
+            </p>
+            <div className="mt-8 hidden lg:flex flex-col gap-2.5">
+              {[
+                "No per-seat surprises — inactive workers never billed",
+                "AI dispatch, GPS tracking, and full analytics",
+                "50% off your first 30 days — no code needed",
+              ].map(item => (
+                <div key={item} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: AI Pricing Wizard */}
+          <div className="w-full">
+            <PricingWizard />
+          </div>
         </div>
       </div>
     </section>

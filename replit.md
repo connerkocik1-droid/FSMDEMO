@@ -57,6 +57,17 @@ Enterprise unlocks: Multi-Location ($49/mo/location), Custom Reports ($19/mo), W
 - `ProtectedRoute` — Smart tier/addon-aware upgrade prompts; `UpgradeCard` component for inline gating
 - Mock auth profiles: free / pro / enterprise (independent and franchise removed)
 
+### AI Pricing Wizard
+- **Home page hero** — `PricingWizard` component replaces static CTA; 2-col layout (headline left, wizard right)
+- **Flow** — 3 conversational steps: industry → team size → pain points (multi-select), then 1.5s processing + quote
+- **AI** — `POST /api/wizard/quote` calls OpenAI GPT with system prompt from `artifacts/api-server/src/prompts/wizardPrompt.ts`; parses JSON response; upserts `wizard_leads` table; returns fallback on error
+- **Quote card** — AI headline, tier badge, tier explanation, add-on toggles (live price updates), billing period toggle, competitor savings callout, 3 CTAs (subscribe/demo/free), optional email capture
+- **Analytics** — GA4 events: `wizard_started`, `wizard_step_completed`, `wizard_quote_viewed`, `wizard_addon_toggled`, `wizard_cta_clicked`, `wizard_email_submitted`
+- **Checkout deep link** — `/checkout?tier=pro&billing=monthly&addons=gps_tracking,sms_marketing` pre-fills order summary with add-ons and correct discounted total
+- **DB** — `wizard_leads` table: session_id, industry, team_size, pain_points[], quote_json, selected_addons[], estimated_monthly, email, cta_clicked, completed
+- **API routes** — `POST /api/wizard/quote`, `POST /api/wizard/lead`, `POST /api/wizard/cta-click` (all public, no auth)
+- **OpenAI** — Uses Replit AI Integrations (no API key required); env vars `AI_INTEGRATIONS_OPENAI_BASE_URL` and `AI_INTEGRATIONS_OPENAI_API_KEY` auto-provisioned
+
 ### Structure
 
 ### Technical Implementations

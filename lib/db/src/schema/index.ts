@@ -32,3 +32,4 @@ export * from "./invoice_templates";
 export * from "./invoice_line_items";
 export * from "./company_addons";
 export * from "./addon_usage";
+export * from "./wizard_leads";

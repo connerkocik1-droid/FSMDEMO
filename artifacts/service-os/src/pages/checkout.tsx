@@ -11,9 +11,20 @@ import { SEO } from "@/components/SEO";
 import { ChevronLeft, Lock, CheckCircle2, AlertCircle } from "lucide-react";
 
 const TIER_INFO: Record<string, { name: string; monthly: number; annualMonthly: number; annualTotal: number }> = {
-  independent: { name: "Independent", monthly: 79, annualMonthly: 59, annualTotal: 708 },
-  pro: { name: "Pro", monthly: 199, annualMonthly: 149, annualTotal: 1788 },
-  franchise: { name: "Franchise", monthly: 449, annualMonthly: 329, annualTotal: 3948 },
+  free: { name: "Free", monthly: 0, annualMonthly: 0, annualTotal: 0 },
+  pro: { name: "Pro", monthly: 59, annualMonthly: 49, annualTotal: 588 },
+  enterprise: { name: "Enterprise", monthly: 129, annualMonthly: 108, annualTotal: 1296 },
+};
+
+const ADDON_INFO: Record<string, { name: string; price: number; unit: string }> = {
+  gps_tracking: { name: "GPS Tracking", price: 14, unit: "/mo" },
+  landing_page: { name: "Landing Pages", price: 14, unit: "/mo per page" },
+  sms_marketing: { name: "SMS Campaigns", price: 14, unit: "/mo" },
+  live_chat: { name: "Live Chat", price: 19, unit: "/mo" },
+  background_check: { name: "Background Checks", price: 9, unit: "/check" },
+  multi_location: { name: "Multi-Location", price: 49, unit: "/mo" },
+  custom_reports: { name: "Custom Reports", price: 19, unit: "/mo" },
+  white_label: { name: "White Label", price: 49, unit: "/mo" },
 };
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -128,6 +139,8 @@ export default function Checkout() {
   const params = new URLSearchParams(search);
   const tier = params.get("tier") || "pro";
   const billingPeriod = params.get("billing") || "monthly";
+  const addonsParam = params.get("addons") || "";
+  const selectedAddons = addonsParam ? addonsParam.split(",").filter(k => ADDON_INFO[k]) : [];
 
   const tierInfo = TIER_INFO[tier];
 
@@ -149,8 +162,9 @@ export default function Checkout() {
 
   const isAnnual = billingPeriod === "annual";
   const monthlyEquivalent = isAnnual ? tierInfo.annualMonthly : tierInfo.monthly;
-  const invoiceAmount = isAnnual ? tierInfo.annualTotal : tierInfo.monthly;
-  const discountedInvoice = Math.round(invoiceAmount * 0.5);
+  const addonMonthly = selectedAddons.reduce((sum, k) => sum + (ADDON_INFO[k]?.price ?? 0), 0);
+  const invoiceAmount = (isAnnual ? tierInfo.annualTotal : tierInfo.monthly) + addonMonthly;
+  const discountedInvoice = Math.max(Math.round(invoiceAmount * 0.5), 0);
 
   return (
     <div className="min-h-screen bg-secondary/30 flex flex-col">
@@ -186,11 +200,27 @@ export default function Checkout() {
                   <span className="font-semibold text-foreground capitalize">{billingPeriod}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Regular price</span>
+                  <span className="text-muted-foreground">Base price</span>
                   <span className="text-muted-foreground">
-                    {isAnnual ? `$${tierInfo.annualTotal}/yr ($${monthlyEquivalent}/mo)` : `$${tierInfo.monthly}/mo`}
+                    {isAnnual ? `$${tierInfo.annualMonthly}/mo (billed $${tierInfo.annualTotal}/yr)` : `$${tierInfo.monthly}/mo`}
                   </span>
                 </div>
+                {selectedAddons.map(key => {
+                  const addon = ADDON_INFO[key];
+                  if (!addon) return null;
+                  return (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-muted-foreground">{addon.name}</span>
+                      <span className="text-muted-foreground">${addon.price}{addon.unit}</span>
+                    </div>
+                  );
+                })}
+                {selectedAddons.length > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Add-on subtotal</span>
+                    <span className="text-muted-foreground">+${addonMonthly}/mo</span>
+                  </div>
+                )}
                 <div className="border-t pt-3">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">FIRST30 discount (50% off first invoice)</span>
