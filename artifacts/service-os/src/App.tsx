@@ -1,7 +1,7 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
-import { MockAuthProvider, MockSignedIn, MockSignedOut, RoleTierSwitcher } from "@/lib/mock-auth";
+import { MockAuthProvider, MockSignedIn, MockSignedOut } from "@/lib/mock-auth";
 import { DevAdminAuthProvider } from "@/lib/dev-admin-auth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -278,7 +278,6 @@ function AppRouter() {
               </Route>
             </Switch>
           </DashboardLayout>
-          <RoleTierSwitcher />
         </MockSignedIn>
         <MockSignedOut>
           <Redirect to="/" />

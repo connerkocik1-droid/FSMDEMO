@@ -35,7 +35,7 @@ router.get("/overview", async (req: AuthRequest, res) => {
       .from(jobsTable).where(and(eq(jobsTable.companyId, companyId), eq(jobsTable.status, "in_progress")));
 
     const [revenueStats] = await db.select({ total: sum(invoicesTable.total) })
-      .from(invoicesTable).where(and(eq(invoicesTable.companyId, companyId), eq(invoicesTable.status, "paid")));
+      .from(invoicesTable).where(and(eq(invoicesTable.companyId, companyId), eq(invoicesTable.status, "paid"), gte(invoicesTable.paidAt, since)));
 
     const [pendingRevenue] = await db.select({ total: sum(invoicesTable.total) })
       .from(invoicesTable).where(and(eq(invoicesTable.companyId, companyId), eq(invoicesTable.status, "sent")));

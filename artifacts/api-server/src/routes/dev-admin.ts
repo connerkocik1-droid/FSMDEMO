@@ -558,11 +558,11 @@ router.post("/demo-data/seed", requireDevAdmin, async (_req: DevAdminRequest, re
   const jobEntries = [];
   for (let m = 5; m >= 0; m--) {
     const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
-    const jobsThisMonth = 8 + Math.floor(Math.random() * 8); // 8-15 jobs/month
+    const jobsThisMonth = 40 + Math.floor(Math.random() * 16); // 40-55 jobs/month
     for (let j = 0; j < jobsThisMonth; j++) {
       const day = 1 + Math.floor(Math.random() * 27);
       const jobDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), day);
-      const revenue = 120 + Math.floor(Math.random() * 880); // $120–$1000
+      const revenue = 150 + Math.floor(Math.random() * 501); // $150–$650
       const cust = insertedCustomers[Math.floor(Math.random() * insertedCustomers.length)];
       jobEntries.push({
         companyId: cid,
@@ -581,7 +581,7 @@ router.post("/demo-data/seed", requireDevAdmin, async (_req: DevAdminRequest, re
   const insertedJobs = await db.insert(jobsTable).values(jobEntries).returning();
 
   // Create paid invoices linked to jobs
-  const invoiceEntries = insertedJobs.slice(0, Math.min(insertedJobs.length, 50)).map((job, i) => ({
+  const invoiceEntries = insertedJobs.map((job, i) => ({
     companyId: cid,
     customerId: job.customerId,
     jobId: job.id,
