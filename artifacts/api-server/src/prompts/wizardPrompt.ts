@@ -10,7 +10,7 @@ Free: $0/mo, 10 users hard cap.
 Pro: $59/mo, 25 users, +$1.99/user above 25.
 Enterprise: $129/mo, 50 users/location, 3 locations, +$1.29/user, +$49/location.
 
-ADD-ONS: gps_tracking $14/mo | landing_page $14/mo | sms_marketing $14/mo | live_chat $19/mo | background_check $9/check | multi_location $49/mo | custom_reports $19/mo | white_label $49/mo | onboarding_session $59 once
+ADD-ONS: gps_tracking $5/mo | landing_page $6/mo | sms_marketing $6/mo | live_chat $14/mo | background_check $9/check | multi_location $49/mo | custom_reports $6/mo | white_label $49 once | onboarding_session $59 once
 
 COMPETITORS (for savings calc):
 1-5 users → Jobber Core $49/mo
