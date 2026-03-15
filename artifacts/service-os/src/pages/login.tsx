@@ -1,7 +1,9 @@
-import { useLocation } from "wouter";
-import { CheckCircle2, Lock, ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { useLocation, useSearch } from "wouter";
+import { CheckCircle2, Lock, ArrowLeft, Mail, KeyRound } from "lucide-react";
 import { useMockAuth, DEMO_PROFILES, type DemoProfile } from "@/lib/mock-auth";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const TIER_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
   free:        { bg: "bg-slate-100",    text: "text-slate-700",  border: "border-slate-200", dot: "bg-slate-400" },
@@ -94,17 +96,129 @@ function ProfileCard({ profile, onSelect }: { profile: DemoProfile; onSelect: ()
   );
 }
 
-export default function DemoLogin() {
-  const { signInAs } = useMockAuth();
-  const [, navigate] = useLocation();
+function SignInForm({ onSignIn }: { onSignIn: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSelect = (profile: DemoProfile) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSignIn();
+  };
+
+  return (
+    <div className="max-w-md mx-auto">
+      <div className="bg-card rounded-2xl border p-8 shadow-sm">
+        <h2 className="text-2xl font-display font-bold text-foreground mb-2">Welcome back</h2>
+        <p className="text-sm text-muted-foreground mb-8">Sign in to your ServiceOS account</p>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium text-foreground">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-sm font-medium text-foreground">Password</label>
+            <div className="relative">
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all shadow-sm hover:shadow active:scale-[0.99]"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          This is a demo app — any credentials will sign you in with a default Pro-tier owner account.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DemoAccountsGrid({ onSelect }: { onSelect: (profile: DemoProfile) => void }) {
+  const ownerProfiles = DEMO_PROFILES.filter(p => p.role !== "operator");
+  const employeeProfile = DEMO_PROFILES.find(p => p.role === "operator")!;
+
+  return (
+    <>
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-display font-bold text-foreground">Choose a demo profile</h2>
+        <p className="mt-2 text-muted-foreground max-w-xl mx-auto text-sm">
+          Each profile is pre-configured with a different subscription tier so you can explore exactly what your customers will see.
+        </p>
+      </div>
+
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Owner Accounts</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {ownerProfiles.map(profile => (
+            <ProfileCard key={profile.id} profile={profile} onSelect={() => onSelect(profile)} />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Employee Account</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div className="max-w-sm mx-auto">
+          <ProfileCard profile={employeeProfile} onSelect={() => onSelect(employeeProfile)} />
+        </div>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground mt-12">
+        These are demo accounts with simulated data. No real information is stored or transmitted.
+      </p>
+    </>
+  );
+}
+
+export default function DemoLogin() {
+  const { signIn, signInAs } = useMockAuth();
+  const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const tabParam = params.get("tab");
+  const defaultTab = tabParam === "demo" ? "demo" : "signin";
+
+  const handleSelectProfile = (profile: DemoProfile) => {
     signInAs(profile);
     navigate("/dashboard");
   };
 
-  const ownerProfiles = DEMO_PROFILES.filter(p => p.role !== "operator");
-  const employeeProfile = DEMO_PROFILES.find(p => p.role === "operator")!;
+  const handleSignIn = () => {
+    signIn();
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,44 +230,29 @@ export default function DemoLogin() {
           </a>
         </div>
 
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 mb-6">
             <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-9 h-9 rounded-xl" />
             <span className="font-display font-bold text-2xl tracking-tight text-foreground">ServiceOS</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Choose a demo profile</h1>
-          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Each profile is pre-configured with a different subscription tier so you can explore exactly what your customers will see.
-          </p>
         </div>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Owner Accounts</span>
-            <div className="h-px flex-1 bg-border" />
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <div className="flex justify-center mb-10">
+            <TabsList className="h-11">
+              <TabsTrigger value="signin" className="px-6 py-2 text-sm font-semibold">Sign In</TabsTrigger>
+              <TabsTrigger value="demo" className="px-6 py-2 text-sm font-semibold">Demo Accounts</TabsTrigger>
+            </TabsList>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {ownerProfiles.map(profile => (
-              <ProfileCard key={profile.id} profile={profile} onSelect={() => handleSelect(profile)} />
-            ))}
-          </div>
-        </div>
 
-        <div>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Employee Account</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <div className="max-w-sm mx-auto">
-            <ProfileCard profile={employeeProfile} onSelect={() => handleSelect(employeeProfile)} />
-          </div>
-        </div>
+          <TabsContent value="signin">
+            <SignInForm onSignIn={handleSignIn} />
+          </TabsContent>
 
-        <p className="text-center text-xs text-muted-foreground mt-12">
-          These are demo accounts with simulated data. No real information is stored or transmitted.
-        </p>
+          <TabsContent value="demo">
+            <DemoAccountsGrid onSelect={handleSelectProfile} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

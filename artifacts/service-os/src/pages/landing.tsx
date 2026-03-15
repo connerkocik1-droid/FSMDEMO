@@ -16,7 +16,7 @@ export default function Landing() {
           <div className="hidden md:flex items-center gap-8 font-medium text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-            <Link href="/demo" className="hover:text-foreground transition-colors">Request Demo</Link>
+            <Link href="/login?tab=demo" className="hover:text-foreground transition-colors">Request Demo</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm hover:shadow active:scale-95 text-sm">
@@ -50,7 +50,7 @@ export default function Landing() {
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 delay-300">
             <Link 
-              href="/demo" 
+              href="/login?tab=demo" 
               className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center"
             >
               Get a Demo <ArrowRight className="w-5 h-5" />
@@ -271,7 +271,7 @@ function PricingSection() {
                 </ul>
 
                 <Link
-                  href="/demo"
+                  href="/login?tab=demo"
                   className={cn(
                     "w-full py-3 rounded-xl font-semibold text-center transition-all",
                     plan.popular
@@ -285,10 +285,6 @@ function PricingSection() {
             );
           })}
         </div>
-
-        <p className="text-center text-sm text-muted-foreground mt-10">
-          All paid plans include a 14-day free trial. No credit card required.
-        </p>
       </div>
     </section>
   );

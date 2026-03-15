@@ -75,6 +75,7 @@ router.patch("/:id/role", requireRole("owner"), async (req: AuthRequest, res) =>
 
     const previousRole = existing.role;
 
+
     const [updated] = await db.update(usersTable)
       .set({ role, updatedAt: new Date() })
       .where(and(eq(usersTable.id, userId), eq(usersTable.companyId, req.companyId)))
