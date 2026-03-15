@@ -1,0 +1,14 @@
+The sidebar has 3 separate scrollable sections crammed with items — Operations (Dashboard, Jobs & Dispatch, Dispatch Board, Live GPS), CRM (Leads, Customers), Communication (SMS Hub, Reviews, Referrals), Reports (Financials, Invoices, Analytics, Insights), Account (My Profile, Company, Team, Billing, Add-ons, Audit Log), Settings (Landing Pages, Locations, API Keys). That's 20+ sidebar items across 6 sections. Way too many.
+The demo banner is working correctly — amber bar, "End demo" button, correct message. That's good.
+The dashboard stats cards are clean and readable. Recent Jobs table and Activity Feed are solid. The "DEV CONTROLS" role/tier switcher floating in the bottom right needs to be hidden or moved.
+Here's my full audit and simplification plan:
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.25s;
+    animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  }
+VvisualizeVvisualize show_widgetThere's the full audit and plan across four tabs.
+The biggest single problem is the sidebar — 20+ items across 6 sections when it should be 7 top-level items with sub-navigation. The new structure is: Dashboard, Jobs (with Dispatch Board and Live GPS nested), Customers (with Leads nested), Inbox, Finance, Reports, and a single Settings gear icon at the bottom that contains everything currently scattered across Account and Settings. That's it.
+The three critical fixes before any prospect sees the demo are the sidebar collapse, removing the DEV CONTROLS floating widget (it's visible right now in every screenshot you sent me), and replacing the $766,480 revenue stat with realistic demo numbers. A real landscaping business owner seeing $766k in 30-day revenue will immediately know it's fake and lose trust in the platform.
+The Fix Priority tab has the paste-ready Replit prompt covering all 9 changes — it's one prompt, covers everything, and explicitly says not to change any functionality, only structure and labels. Paste that in and it should clean up the entire UI in one shot.
