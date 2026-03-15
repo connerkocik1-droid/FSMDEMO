@@ -11,8 +11,8 @@ type Tab = "signin" | "create" | "demo";
 
 const TIER_CONFIG: Record<string, { label: string; price: string; users: string; color: string; token: string }> = {
   free: { label: "Free", price: "Free forever", users: "Up to 3 users", color: "bg-gray-100 text-gray-700 border-gray-200", token: "SERVICEOS-FREE" },
-  pro: { label: "Pro", price: "$99/mo", users: "Up to 25 users", color: "bg-violet-50 text-violet-700 border-violet-200", token: "SERVICEOS-PRO" },
-  enterprise: { label: "Enterprise", price: "Custom", users: "200+ users", color: "bg-emerald-50 text-emerald-700 border-emerald-200", token: "SERVICEOS-ENTERPRISE" },
+  pro: { label: "Pro", price: "$59/mo", users: "Up to 25 users", color: "bg-violet-50 text-violet-700 border-violet-200", token: "SERVICEOS-PRO" },
+  enterprise: { label: "Enterprise", price: "$129/mo", users: "200+ users", color: "bg-emerald-50 text-emerald-700 border-emerald-200", token: "SERVICEOS-ENTERPRISE" },
 };
 
 const DEMO_TOKENS: Record<string, string> = {
