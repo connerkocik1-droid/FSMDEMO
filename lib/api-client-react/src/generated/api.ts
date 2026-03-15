@@ -71,6 +71,19 @@ import type {
   UpdateUserRequest,
   User,
   UserProfile,
+  PublicReviewInfo,
+  SubmitReviewRequest,
+  ReviewSubmitResponse,
+  Location,
+  LocationsResponse,
+  CreateLocationRequest,
+  ApiKey,
+  ApiKeysResponse,
+  ApiKeyCreated,
+  MarkInvoicePaidBody,
+  SendReviewRequestBody,
+  CreateApiKeyBody,
+  UpdateApiKeyBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -3725,4 +3738,229 @@ export function useGetJobAnalytics<
   };
 
   return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const markInvoiceSent = (invoiceId: number, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<Invoice>({ url: `/api/invoices/${invoiceId}/send`, method: "PATCH" }, options);
+};
+
+export const getMarkInvoiceSentMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof markInvoiceSent>>, TError, { invoiceId: number }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof markInvoiceSent>>, TError, { invoiceId: number }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof markInvoiceSent>>, { invoiceId: number }> = (props) => {
+    const { invoiceId } = props ?? {};
+    return markInvoiceSent(invoiceId, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useMarkInvoiceSent<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof markInvoiceSent>>, TError, { invoiceId: number }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof markInvoiceSent>>, TError, { invoiceId: number }, TContext> {
+  const mutationOptions = getMarkInvoiceSentMutationOptions(options);
+  return useMutation(mutationOptions);
+}
+
+export const markInvoicePaid = (invoiceId: number, markInvoicePaidBody?: MarkInvoicePaidBody, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<Invoice>({ url: `/api/invoices/${invoiceId}/pay`, method: "PATCH", headers: { "Content-Type": "application/json" }, data: markInvoicePaidBody }, options);
+};
+
+export const getMarkInvoicePaidMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof markInvoicePaid>>, TError, { invoiceId: number; data?: MarkInvoicePaidBody }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof markInvoicePaid>>, TError, { invoiceId: number; data?: MarkInvoicePaidBody }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof markInvoicePaid>>, { invoiceId: number; data?: MarkInvoicePaidBody }> = (props) => {
+    const { invoiceId, data } = props ?? {};
+    return markInvoicePaid(invoiceId, data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useMarkInvoicePaid<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof markInvoicePaid>>, TError, { invoiceId: number; data?: MarkInvoicePaidBody }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof markInvoicePaid>>, TError, { invoiceId: number; data?: MarkInvoicePaidBody }, TContext> {
+  const mutationOptions = getMarkInvoicePaidMutationOptions(options);
+  return useMutation(mutationOptions);
+}
+
+export const getReviewByToken = (token: string, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<PublicReviewInfo>({ url: `/api/reviews/token/${token}`, method: "GET" }, options);
+};
+
+export const getGetReviewByTokenQueryKey = (token: string) => {
+  return [`/api/reviews/token/${token}`] as const;
+};
+
+export const getGetReviewByTokenQueryOptions = <TData = Awaited<ReturnType<typeof getReviewByToken>>, TError = ErrorType<unknown>>(
+  token: string,
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getReviewByToken>>, TError, TData>; request?: SecondParameter<typeof customFetch> },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetReviewByTokenQueryKey(token);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReviewByToken>>> = () => getReviewByToken(token, requestOptions);
+  return { queryKey, queryFn, enabled: !!token, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getReviewByToken>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useGetReviewByToken<TData = Awaited<ReturnType<typeof getReviewByToken>>, TError = ErrorType<unknown>>(
+  token: string,
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getReviewByToken>>, TError, TData>; request?: SecondParameter<typeof customFetch> },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReviewByTokenQueryOptions(token, options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const submitReviewByToken = (token: string, submitReviewRequest: SubmitReviewRequest, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<ReviewSubmitResponse>({ url: `/api/reviews/token/${token}`, method: "POST", headers: { "Content-Type": "application/json" }, data: submitReviewRequest }, options);
+};
+
+export const getSubmitReviewByTokenMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof submitReviewByToken>>, TError, { token: string; data: SubmitReviewRequest }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof submitReviewByToken>>, TError, { token: string; data: SubmitReviewRequest }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitReviewByToken>>, { token: string; data: SubmitReviewRequest }> = (props) => {
+    const { token, data } = props ?? {};
+    return submitReviewByToken(token, data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useSubmitReviewByToken<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof submitReviewByToken>>, TError, { token: string; data: SubmitReviewRequest }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof submitReviewByToken>>, TError, { token: string; data: SubmitReviewRequest }, TContext> {
+  const mutationOptions = getSubmitReviewByTokenMutationOptions(options);
+  return useMutation(mutationOptions);
+}
+
+export const sendReviewRequest = (sendReviewRequestBody: SendReviewRequestBody, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<{ review: Review; reviewUrl: string }>({ url: `/api/sms/review-request`, method: "POST", headers: { "Content-Type": "application/json" }, data: sendReviewRequestBody }, options);
+};
+
+export const getSendReviewRequestMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof sendReviewRequest>>, TError, { data: SendReviewRequestBody }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof sendReviewRequest>>, TError, { data: SendReviewRequestBody }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendReviewRequest>>, { data: SendReviewRequestBody }> = (props) => {
+    const { data } = props ?? {};
+    return sendReviewRequest(data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useSendReviewRequest<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof sendReviewRequest>>, TError, { data: SendReviewRequestBody }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof sendReviewRequest>>, TError, { data: SendReviewRequestBody }, TContext> {
+  const mutationOptions = getSendReviewRequestMutationOptions(options);
+  return useMutation(mutationOptions);
+}
+
+export const listLocations = (options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<LocationsResponse>({ url: `/api/locations`, method: "GET" }, options);
+};
+
+export const getListLocationsQueryKey = () => {
+  return [`/api/locations`] as const;
+};
+
+export const getListLocationsQueryOptions = <TData = Awaited<ReturnType<typeof listLocations>>, TError = ErrorType<unknown>>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listLocations>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListLocationsQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLocations>>> = () => listLocations(requestOptions);
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof listLocations>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useListLocations<TData = Awaited<ReturnType<typeof listLocations>>, TError = ErrorType<unknown>>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listLocations>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLocationsQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const createLocation = (createLocationRequest: CreateLocationRequest, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<Location>({ url: `/api/locations`, method: "POST", headers: { "Content-Type": "application/json" }, data: createLocationRequest }, options);
+};
+
+export const getCreateLocationMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof createLocation>>, TError, { data: CreateLocationRequest }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof createLocation>>, TError, { data: CreateLocationRequest }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLocation>>, { data: CreateLocationRequest }> = (props) => {
+    const { data } = props ?? {};
+    return createLocation(data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useCreateLocation<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof createLocation>>, TError, { data: CreateLocationRequest }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof createLocation>>, TError, { data: CreateLocationRequest }, TContext> {
+  const mutationOptions = getCreateLocationMutationOptions(options);
+  return useMutation(mutationOptions);
+}
+
+export const listApiKeys = (options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<ApiKeysResponse>({ url: `/api/api-keys`, method: "GET" }, options);
+};
+
+export const getListApiKeysQueryKey = () => {
+  return [`/api/api-keys`] as const;
+};
+
+export const getListApiKeysQueryOptions = <TData = Awaited<ReturnType<typeof listApiKeys>>, TError = ErrorType<unknown>>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listApiKeys>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListApiKeysQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listApiKeys>>> = () => listApiKeys(requestOptions);
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof listApiKeys>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useListApiKeys<TData = Awaited<ReturnType<typeof listApiKeys>>, TError = ErrorType<unknown>>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listApiKeys>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListApiKeysQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const createApiKey = (createApiKeyBody: CreateApiKeyBody, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<ApiKeyCreated>({ url: `/api/api-keys`, method: "POST", headers: { "Content-Type": "application/json" }, data: createApiKeyBody }, options);
+};
+
+export const getCreateApiKeyMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof createApiKey>>, TError, { data: CreateApiKeyBody }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof createApiKey>>, TError, { data: CreateApiKeyBody }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApiKey>>, { data: CreateApiKeyBody }> = (props) => {
+    const { data } = props ?? {};
+    return createApiKey(data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useCreateApiKey<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof createApiKey>>, TError, { data: CreateApiKeyBody }, TContext>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<Awaited<ReturnType<typeof createApiKey>>, TError, { data: CreateApiKeyBody }, TContext> {
+  const mutationOptions = getCreateApiKeyMutationOptions(options);
+  return useMutation(mutationOptions);
 }

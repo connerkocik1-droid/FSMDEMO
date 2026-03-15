@@ -10,6 +10,9 @@ import smsRouter from "./sms.js";
 import referralsRouter from "./referrals.js";
 import demoRouter from "./demo.js";
 import analyticsRouter from "./analytics.js";
+import emailsRouter from "./emails.js";
+import locationsRouter from "./locations.js";
+import apiKeysRouter from "./api-keys.js";
 
 const router: IRouter = Router();
 
@@ -25,5 +28,8 @@ router.use("/referrals", referralsRouter);
 router.use("/referral-groups", referralsRouter);
 router.use("/demo", demoRouter);
 router.use("/analytics", analyticsRouter);
+router.use("/emails", emailsRouter);
+router.use("/locations", locationsRouter);
+router.use("/api-keys", apiKeysRouter);
 
 export default router;

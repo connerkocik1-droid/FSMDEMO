@@ -886,6 +886,308 @@ paths:
               schema:
                 $ref: "#/components/schemas/JobAnalytics"
 
+  # Invoice status actions
+  /invoices/{invoiceId}/send:
+    patch:
+      operationId: markInvoiceSent
+      tags: [invoices]
+      summary: Mark invoice as sent
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/{invoiceId}/pay:
+    patch:
+      operationId: markInvoicePaid
+      tags: [invoices]
+      summary: Mark invoice as paid
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentMethod:
+                  type: string
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/analytics/revenue:
+    get:
+      operationId: getRevenueAnalytics
+      tags: [invoices]
+      summary: Get revenue analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 12m]
+      responses:
+        "200":
+          description: Revenue analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueAnalytics"
+
+  # Public review endpoints
+  /reviews/token/{token}:
+    get:
+      operationId: getReviewByToken
+      tags: [reviews]
+      summary: Get review info by token (public)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Review info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicReviewInfo"
+    post:
+      operationId: submitReviewByToken
+      tags: [reviews]
+      summary: Submit review by token (public)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitReviewRequest"
+      responses:
+        "200":
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewSubmitResponse"
+
+  # SMS review request
+  /sms/review-request:
+    post:
+      operationId: sendReviewRequest
+      tags: [sms]
+      summary: Send review request SMS after job completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobId, customerId]
+              properties:
+                jobId:
+                  type: integer
+                customerId:
+                  type: integer
+                customerPhone:
+                  type: string
+      responses:
+        "201":
+          description: Review request sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  review:
+                    $ref: "#/components/schemas/Review"
+                  reviewUrl:
+                    type: string
+
+  # Locations (franchise)
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      summary: List company locations
+      responses:
+        "200":
+          description: Locations list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationsResponse"
+    post:
+      operationId: createLocation
+      tags: [locations]
+      summary: Create location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocationRequest"
+      responses:
+        "201":
+          description: Created location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+
+  /locations/{locationId}:
+    put:
+      operationId: updateLocation
+      tags: [locations]
+      summary: Update location
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocationRequest"
+      responses:
+        "200":
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+    delete:
+      operationId: deleteLocation
+      tags: [locations]
+      summary: Deactivate location
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # API Keys (franchise)
+  /api-keys:
+    get:
+      operationId: listApiKeys
+      tags: [api-keys]
+      summary: List API keys
+      responses:
+        "200":
+          description: API keys list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeysResponse"
+    post:
+      operationId: createApiKey
+      tags: [api-keys]
+      summary: Create API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+      responses:
+        "201":
+          description: Created API key (includes plaintext key shown only once)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyCreated"
+
+  /api-keys/{keyId}:
+    patch:
+      operationId: updateApiKey
+      tags: [api-keys]
+      summary: Update API key
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                isActive:
+                  type: boolean
+      responses:
+        "200":
+          description: Updated API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKey"
+    delete:
+      operationId: deleteApiKey
+      tags: [api-keys]
+      summary: Deactivate API key
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
 components:
   schemas:
     HealthStatus:
@@ -2154,3 +2456,161 @@ components:
         - byStatus
         - byServiceType
         - avgCompletionTime
+
+    RevenueAnalytics:
+      type: object
+      properties:
+        total:
+          type: number
+        invoiceCount:
+          type: integer
+        growth:
+          type: number
+        period:
+          type: string
+      required:
+        - total
+        - invoiceCount
+        - growth
+        - period
+
+    PublicReviewInfo:
+      type: object
+      properties:
+        reviewId:
+          type: integer
+        companyName:
+          type: string
+        jobId:
+          type: integer
+        alreadySubmitted:
+          type: boolean
+        message:
+          type: string
+
+    SubmitReviewRequest:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        testimonial:
+          type: string
+
+    ReviewSubmitResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        isPositive:
+          type: boolean
+        message:
+          type: string
+        review:
+          $ref: "#/components/schemas/Review"
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        adminUserId:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - isActive
+
+    LocationsResponse:
+      type: object
+      properties:
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Location"
+        operatorCount:
+          type: integer
+        maxOperators:
+          type: integer
+        atCapWarning:
+          type: boolean
+        atCapBlock:
+          type: boolean
+      required:
+        - locations
+        - operatorCount
+        - maxOperators
+
+    CreateLocationRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        adminUserId:
+          type: integer
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        keyPreview:
+          type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - isActive
+
+    ApiKeysResponse:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApiKey"
+      required:
+        - keys
+
+    ApiKeyCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        key:
+          type: string
+        message:
+          type: string
+      required:
+        - id
+        - key

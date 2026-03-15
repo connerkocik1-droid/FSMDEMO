@@ -13,10 +13,15 @@ import {
   X,
   Lock,
   WalletCards,
-  BookOpen
+  BookOpen,
+  Globe,
+  Building,
+  Key,
+  Calendar
 } from "lucide-react";
 import { useState } from "react";
 import { useMockAuth, MockUserButton } from "@/lib/mock-auth";
+import type { Feature } from "@/lib/permissions";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -24,35 +29,53 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const navGroups = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  feature?: Feature;
+  minRole?: "owner" | "admin" | "manager" | "operator";
+}
+
+const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Operations",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { name: "Jobs & Dispatch", href: "/jobs", icon: Briefcase },
-      { name: "Live GPS", href: "/gps", icon: MapPin, tier: "pro" },
+      { name: "Dispatch Board", href: "/dispatch", icon: MapPin, minRole: "admin" },
+      { name: "Live GPS", href: "/gps", icon: MapPin, feature: "gps_tracking" },
     ]
   },
   {
     label: "CRM",
     items: [
-      { name: "Leads", href: "/leads", icon: BookOpen },
-      { name: "Customers", href: "/customers", icon: Users },
+      { name: "Leads", href: "/leads", icon: BookOpen, minRole: "admin" },
+      { name: "Customers", href: "/customers", icon: Users, minRole: "admin" },
     ]
   },
   {
     label: "Communication",
     items: [
-      { name: "SMS Hub", href: "/sms", icon: MessageSquare },
-      { name: "Reviews", href: "/reviews", icon: Star },
-      { name: "Referrals", href: "/referrals", icon: Share2 },
+      { name: "SMS Hub", href: "/sms", icon: MessageSquare, feature: "manual_sms" },
+      { name: "Reviews", href: "/reviews", icon: Star, feature: "referral_network" },
+      { name: "Referrals", href: "/referrals", icon: Share2, feature: "referral_network" },
     ]
   },
   {
     label: "Reports",
     items: [
-      { name: "Financials", href: "/financials", icon: WalletCards },
-      { name: "Analytics", href: "/analytics", icon: LineChart, tier: "pro" },
+      { name: "Financials", href: "/financials", icon: WalletCards, feature: "basic_financials" },
+      { name: "Analytics", href: "/analytics", icon: LineChart, feature: "full_analytics" },
+    ]
+  },
+  {
+    label: "Settings",
+    items: [
+      { name: "Demo Scheduler", href: "/settings/demo-scheduler", icon: Calendar, minRole: "owner" },
+      { name: "Landing Pages", href: "/settings/landing-pages", icon: Globe, feature: "landing_pages", minRole: "owner" },
+      { name: "Locations", href: "/settings/locations", icon: Building, feature: "multi_location", minRole: "owner" },
+      { name: "API Keys", href: "/settings/api-keys", icon: Key, feature: "custom_api_access", minRole: "owner" },
     ]
   }
 ];
@@ -60,10 +83,7 @@ const navGroups = [
 export function Sidebar() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useMockAuth();
-  
-  const userTier = user?.publicMetadata?.tier || "free";
-  const isPro = userTier === "pro" || userTier === "franchise" || userTier === "enterprise";
+  const { canAccessFeature, isAtLeastRole } = useMockAuth();
 
   const NavContent = () => (
     <>
@@ -75,54 +95,51 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <h3 className="px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-2">
-              {group.label}
-            </h3>
-            <nav className="space-y-1">
-              {group.items.map((item) => {
-                const isActive = location === item.href || location.startsWith(`${item.href}/`);
-                const isLocked = item.tier === "pro" && !isPro;
-                
-                return (
-                  <Link
-                    key={item.name}
-                    href={isLocked ? "#" : item.href}
-                    className={cn(
-                      "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                      isActive 
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-primary/20" 
-                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                      isLocked && "opacity-50 cursor-not-allowed hover:bg-transparent"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-sidebar-foreground/60")} />
-                      {item.name}
-                    </div>
-                    {isLocked && <Lock className="w-4 h-4 text-sidebar-foreground/40" />}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-        ))}
+        {navGroups.map((group) => {
+          const visibleItems = group.items.filter(item => {
+            if (item.minRole && !isAtLeastRole(item.minRole)) return false;
+            return true;
+          });
+          if (visibleItems.length === 0) return null;
+          
+          return (
+            <div key={group.label}>
+              <h3 className="px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-2">
+                {group.label}
+              </h3>
+              <nav className="space-y-1">
+                {visibleItems.map((item) => {
+                  const isActive = location === item.href || location.startsWith(`${item.href}/`);
+                  const isLocked = item.feature ? !canAccessFeature(item.feature) : false;
+                  
+                  return (
+                    <Link
+                      key={item.name}
+                      href={isLocked ? "#" : item.href}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                        isActive 
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-primary/20" 
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        isLocked && "opacity-50 cursor-not-allowed hover:bg-transparent"
+                      )}
+                      title={isLocked ? "Upgrade to unlock this feature" : undefined}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-sidebar-foreground/60")} />
+                        {item.name}
+                      </div>
+                      {isLocked && <Lock className="w-4 h-4 text-sidebar-foreground/40" />}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="p-4 mt-auto border-t border-sidebar-border space-y-2">
-        <Link 
-          href="/settings"
-          className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-            location.startsWith("/settings")
-              ? "bg-sidebar-accent text-sidebar-foreground"
-              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          )}
-        >
-          <Settings className="w-5 h-5 text-sidebar-foreground/60" />
-          Settings
-        </Link>
+      <div className="p-4 mt-auto border-t border-sidebar-border">
         <div className="px-2 py-2">
           <MockUserButton />
         </div>
@@ -132,7 +149,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
       <button 
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-lg shadow-md border"
         onClick={() => setIsOpen(true)}
@@ -140,7 +156,6 @@ export function Sidebar() {
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Mobile Backdrop */}
       {isOpen && (
         <div 
           className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
@@ -148,7 +163,6 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 w-72 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"

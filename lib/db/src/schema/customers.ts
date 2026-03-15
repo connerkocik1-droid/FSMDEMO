@@ -6,6 +6,7 @@ import { companiesTable } from "./companies";
 export const customersTable = pgTable("customers", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull().references(() => companiesTable.id),
+  leadId: integer("lead_id"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email"),
@@ -15,6 +16,7 @@ export const customersTable = pgTable("customers", {
   state: text("state"),
   zip: text("zip"),
   notes: text("notes"),
+  ratingAvg: numeric("rating_avg"),
   totalJobsCount: integer("total_jobs_count").notNull().default(0),
   totalRevenue: numeric("total_revenue").notNull().default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

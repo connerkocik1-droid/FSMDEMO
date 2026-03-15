@@ -12,8 +12,12 @@ export const reviewsTable = pgTable("reviews", {
   jobId: integer("job_id").references(() => jobsTable.id),
   rating: integer("rating").notNull(),
   comment: text("comment"),
+  testimonial: text("testimonial"),
+  reviewToken: text("review_token").unique(),
   reviewSource: text("review_source"),
+  isPublic: boolean("is_public").notNull().default(false),
   isPublished: boolean("is_published").notNull().default(true),
+  status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

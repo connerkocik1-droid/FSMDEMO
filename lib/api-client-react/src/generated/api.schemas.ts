@@ -817,3 +817,94 @@ export const GetJobAnalyticsPeriod = {
   "90d": "90d",
   "1y": "1y",
 } as const;
+
+export type RevenueAnalytics = {
+  total: number;
+  invoiceCount: number;
+  growth: number;
+  period: string;
+};
+
+export type PublicReviewInfo = {
+  reviewId?: number;
+  companyName?: string;
+  jobId?: number;
+  alreadySubmitted?: boolean;
+  message?: string;
+};
+
+export type SubmitReviewRequest = {
+  rating: number;
+  comment?: string;
+  testimonial?: string;
+};
+
+export type ReviewSubmitResponse = {
+  success?: boolean;
+  isPositive?: boolean;
+  message?: string;
+  review?: Review;
+};
+
+export type Location = {
+  id: number;
+  companyId?: number;
+  name: string;
+  address?: string;
+  adminUserId?: number;
+  isActive: boolean;
+  createdAt?: string;
+};
+
+export type LocationsResponse = {
+  locations: Location[];
+  operatorCount: number;
+  maxOperators: number;
+  atCapWarning?: boolean;
+  atCapBlock?: boolean;
+};
+
+export type CreateLocationRequest = {
+  name: string;
+  address?: string;
+  adminUserId?: number;
+};
+
+export type ApiKey = {
+  id: number;
+  label?: string;
+  keyPreview?: string;
+  lastUsedAt?: string;
+  isActive: boolean;
+  createdAt?: string;
+};
+
+export type ApiKeysResponse = {
+  keys: ApiKey[];
+};
+
+export type ApiKeyCreated = {
+  id: number;
+  label?: string;
+  key: string;
+  message?: string;
+};
+
+export type MarkInvoicePaidBody = {
+  paymentMethod?: string;
+};
+
+export type SendReviewRequestBody = {
+  jobId: number;
+  customerId: number;
+  customerPhone?: string;
+};
+
+export type CreateApiKeyBody = {
+  label?: string;
+};
+
+export type UpdateApiKeyBody = {
+  label?: string;
+  isActive?: boolean;
+};

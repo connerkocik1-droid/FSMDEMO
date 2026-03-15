@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useListJobs, useCreateJob, useListCustomers } from "@workspace/api-client-react";
-import { Search, Plus, Calendar, MapPin, MoreHorizontal, Clock, CheckCircle2, CheckCircle, AlertCircle, User, Users, Briefcase, Filter, X, ArrowRight, ArrowUpRight, Zap } from "lucide-react";
+import { useListJobs, useCreateJob, useUpdateJob, useListCustomers } from "@workspace/api-client-react";
+import { Search, Plus, Calendar, MapPin, MoreHorizontal, Clock, CheckCircle2, AlertCircle, User, Briefcase, X, ArrowRight, Play, Flag, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,86 +10,105 @@ import { Link } from "wouter";
 const createJobSchema = z.object({
   customerId: z.coerce.number().min(1, "Customer is required"),
   title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
   priority: z.enum(["low", "normal", "high", "urgent"]),
   scheduledStart: z.string().optional(),
+  scheduledEnd: z.string().optional(),
   estimatedRevenue: z.coerce.number().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
 });
 
 type CreateJobData = z.infer<typeof createJobSchema>;
 
+const STATUS_FLOW: Record<string, { next: string; label: string; icon: any; color: string }> = {
+  scheduled: { next: "in_progress", label: "Start Job", icon: Play, color: "bg-blue-600 hover:bg-blue-700" },
+  in_progress: { next: "completed", label: "Complete Job", icon: CheckCircle2, color: "bg-green-600 hover:bg-green-700" },
+};
+
 export default function Jobs() {
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [showIssue, setShowIssue] = useState(false);
+  const [issueText, setIssueText] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const { data: jobsData, isLoading: jobsLoading, refetch } = useListJobs();
   const { data: customersData } = useListCustomers();
   const { mutate: createJob, isPending: isCreating } = useCreateJob();
+  const { mutate: updateJob } = useUpdateJob();
 
   const form = useForm<CreateJobData>({
     resolver: zodResolver(createJobSchema),
-    defaultValues: {
-      priority: "normal"
-    }
+    defaultValues: { priority: "normal" }
   });
 
   const onSubmit = (formData: CreateJobData) => {
-    // format date properly if exists
     const payload = {
       ...formData,
-      scheduledStart: formData.scheduledStart ? new Date(formData.scheduledStart).toISOString() : undefined
+      scheduledStart: formData.scheduledStart ? new Date(formData.scheduledStart).toISOString() : undefined,
+      scheduledEnd: formData.scheduledEnd ? new Date(formData.scheduledEnd).toISOString() : undefined,
     };
-    
     createJob({ data: payload }, {
+      onSuccess: () => { setIsAdding(false); form.reset(); refetch(); }
+    });
+  };
+
+  const handleStatusChange = (jobId: number, newStatus: string) => {
+    updateJob({ jobId, data: { status: newStatus as any } }, {
       onSuccess: () => {
-        setIsAdding(false);
-        form.reset();
         refetch();
+        if (selectedJob?.id === jobId) {
+          setSelectedJob((prev: any) => prev ? { ...prev, status: newStatus } : null);
+        }
       }
     });
   };
+
+  const filteredJobs = jobsData?.jobs.filter(j => filterStatus === "all" || j.status === filterStatus) || [];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-display font-bold text-foreground">Jobs & Dispatch</h2>
+          <h2 className="text-3xl font-display font-bold text-foreground">Jobs & Scheduling</h2>
           <p className="text-muted-foreground mt-1">Schedule and manage all your active service jobs.</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/dispatch" className="px-5 py-2.5 bg-secondary text-secondary-foreground font-semibold rounded-xl hover:bg-secondary/80 transition-all border shadow-sm">
             Board View
           </Link>
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm flex items-center gap-2"
-          >
+          <button onClick={() => setIsAdding(true)} className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm flex items-center gap-2">
             <Plus className="w-5 h-5" /> Schedule Job
           </button>
         </div>
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap">
+        {["all", "scheduled", "in_progress", "completed", "cancelled"].map(s => (
+          <button key={s} onClick={() => setFilterStatus(s)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filterStatus === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary/80"}`}>
+            {s === "all" ? "All" : s.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-card p-5 rounded-2xl border shadow-sm">
-            <h3 className="font-bold text-foreground mb-4">Quick Filters</h3>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer">
-                <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" />
-                <span className="text-sm font-medium">Unassigned</span>
-              </label>
-              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer">
-                <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" defaultChecked />
-                <span className="text-sm font-medium">Scheduled</span>
-              </label>
-              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer">
-                <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" defaultChecked />
-                <span className="text-sm font-medium">In Progress</span>
-              </label>
-              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer">
-                <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" />
-                <span className="text-sm font-medium">Completed Today</span>
-              </label>
-            </div>
+          <div className="bg-card p-5 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="font-bold text-foreground">Summary</h3>
+            {[
+              { label: "Scheduled", count: jobsData?.jobs.filter(j => j.status === "scheduled").length || 0, color: "bg-purple-500" },
+              { label: "In Progress", count: jobsData?.jobs.filter(j => j.status === "in_progress").length || 0, color: "bg-blue-500" },
+              { label: "Completed", count: jobsData?.jobs.filter(j => j.status === "completed").length || 0, color: "bg-green-500" },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div>
+                  <span className="text-sm text-foreground">{item.label}</span>
+                </div>
+                <span className="text-sm font-bold text-foreground">{item.count}</span>
+              </div>
+            ))}
           </div>
-
           <div className="bg-primary/10 border border-primary/20 p-5 rounded-2xl">
             <h3 className="font-bold text-primary mb-2">Live Tracking</h3>
             <p className="text-sm text-primary/80 mb-4">Enable GPS to see where your crews are in real-time.</p>
@@ -101,14 +120,9 @@ export default function Jobs() {
           <div className="p-4 border-b flex items-center gap-4 bg-secondary/30">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="Search jobs..." 
-                className="w-full pl-10 pr-4 py-2 bg-background border rounded-lg focus:outline-none focus:border-primary text-sm"
-              />
+              <input type="text" placeholder="Search jobs..." className="w-full pl-10 pr-4 py-2 bg-background border rounded-lg focus:outline-none focus:border-primary text-sm" />
             </div>
           </div>
-          
           <div className="flex-1 overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-secondary/50 text-muted-foreground font-medium border-b">
@@ -123,8 +137,13 @@ export default function Jobs() {
               <tbody className="divide-y">
                 {jobsLoading ? (
                   <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Loading...</td></tr>
-                ) : jobsData?.jobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-secondary/30 transition-colors group cursor-pointer">
+                ) : filteredJobs.length === 0 ? (
+                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    <Briefcase className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                    <p className="font-medium">No jobs found</p>
+                  </td></tr>
+                ) : filteredJobs.map((job) => (
+                  <tr key={job.id} onClick={() => setSelectedJob(job)} className="hover:bg-secondary/30 transition-colors group cursor-pointer">
                     <td className="px-6 py-4">
                       <p className="font-bold text-foreground mb-1">{job.title}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -154,13 +173,11 @@ export default function Jobs() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
-                        job.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' :
-                        job.status === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' :
-                        job.status === 'scheduled' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' :
-                        'bg-gray-100 text-gray-700 dark:bg-gray-800'
-                      }`}>
-                        {job.status.replace('_', ' ')}
-                      </span>
+                        job.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                        job.status === 'scheduled' ? 'bg-purple-100 text-purple-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>{job.status.replace('_', ' ')}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button className="p-2 hover:bg-secondary rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 transition-all">
@@ -175,16 +192,97 @@ export default function Jobs() {
         </div>
       </div>
 
+      {selectedJob && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg bg-card h-full overflow-y-auto shadow-2xl animate-in slide-in-from-right">
+            <div className="p-6 border-b flex items-center justify-between sticky top-0 bg-card z-10">
+              <div>
+                <h3 className="text-xl font-display font-bold text-foreground">{selectedJob.title}</h3>
+                <p className="text-sm text-muted-foreground">Job #{1000 + selectedJob.id}</p>
+              </div>
+              <button onClick={() => { setSelectedJob(null); setShowIssue(false); }} className="p-2 hover:bg-secondary rounded-full text-muted-foreground"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${
+                  selectedJob.status === 'completed' ? 'bg-green-100 text-green-700' :
+                  selectedJob.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                  selectedJob.status === 'scheduled' ? 'bg-purple-100 text-purple-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>{selectedJob.status.replace('_', ' ')}</span>
+                <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                  selectedJob.priority === 'urgent' ? 'bg-destructive/10 text-destructive' :
+                  selectedJob.priority === 'high' ? 'bg-amber-500/10 text-amber-600' :
+                  'bg-secondary text-muted-foreground'
+                }`}>{selectedJob.priority}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground font-medium">Customer</p>
+                  <p className="text-sm font-semibold text-foreground mt-1">{selectedJob.customer?.firstName} {selectedJob.customer?.lastName}</p>
+                </div>
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground font-medium">Scheduled</p>
+                  <p className="text-sm font-semibold text-foreground mt-1">{selectedJob.scheduledStart ? format(new Date(selectedJob.scheduledStart), "MMM d, h:mm a") : "Not scheduled"}</p>
+                </div>
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground font-medium">Location</p>
+                  <p className="text-sm font-semibold text-foreground mt-1">{selectedJob.address || selectedJob.city || "No address"}</p>
+                </div>
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground font-medium">Revenue</p>
+                  <p className="text-sm font-semibold text-foreground mt-1">{selectedJob.estimatedRevenue ? `$${selectedJob.estimatedRevenue}` : "—"}</p>
+                </div>
+              </div>
+
+              {STATUS_FLOW[selectedJob.status] && (
+                <button
+                  onClick={() => handleStatusChange(selectedJob.id, STATUS_FLOW[selectedJob.status].next)}
+                  className={`w-full py-3 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 ${STATUS_FLOW[selectedJob.status].color}`}
+                >
+                  {(() => { const Icon = STATUS_FLOW[selectedJob.status].icon; return <Icon className="w-4 h-4" />; })()}
+                  {STATUS_FLOW[selectedJob.status].label}
+                </button>
+              )}
+
+              {selectedJob.status === "completed" && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                  <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <p className="font-semibold text-green-800">Job Completed</p>
+                  <p className="text-sm text-green-600 mt-1">Invoice stub generated.</p>
+                </div>
+              )}
+
+              {selectedJob.status !== "completed" && selectedJob.status !== "cancelled" && (
+                <div className="border-t pt-4">
+                  {!showIssue ? (
+                    <button onClick={() => setShowIssue(true)} className="w-full py-3 border-2 border-dashed border-destructive/30 text-destructive font-semibold rounded-xl hover:bg-destructive/5 transition-colors flex items-center justify-center gap-2">
+                      <Flag className="w-4 h-4" /> Report Issue
+                    </button>
+                  ) : (
+                    <div className="space-y-3 animate-in slide-in-from-bottom-4">
+                      <textarea value={issueText} onChange={e => setIssueText(e.target.value)} placeholder="Describe the issue..." className="w-full px-4 py-3 rounded-xl bg-background border text-sm focus:ring-2 focus:ring-destructive/20 focus:border-destructive resize-none" rows={3} />
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setShowIssue(false); setIssueText(""); }} className="flex-1 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary rounded-xl">Cancel</button>
+                        <button onClick={() => { setShowIssue(false); setIssueText(""); }} className="flex-1 py-2 text-sm font-semibold bg-destructive text-white rounded-xl hover:bg-destructive/90">Submit Issue</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isAdding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
           <div className="bg-card w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="px-8 py-6 border-b flex items-center justify-between">
               <h3 className="text-xl font-display font-bold text-foreground">Schedule New Job</h3>
-              <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-secondary rounded-full text-muted-foreground">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-              </button>
+              <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-secondary rounded-full text-muted-foreground"><X className="w-5 h-5" /></button>
             </div>
-            
             <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Customer</label>
@@ -196,13 +294,15 @@ export default function Jobs() {
                 </select>
                 {form.formState.errors.customerId && <p className="text-xs text-destructive">{form.formState.errors.customerId.message}</p>}
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Job Title / Service</label>
                 <input {...form.register("title")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="e.g. AC Repair" />
                 {form.formState.errors.title && <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>}
               </div>
-
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Description</label>
+                <textarea {...form.register("description")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" rows={2} placeholder="Job details..." />
+              </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Priority</label>
@@ -214,15 +314,32 @@ export default function Jobs() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">Scheduled Start</label>
-                  <input type="datetime-local" {...form.register("scheduledStart")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                  <label className="text-sm font-semibold">Est. Revenue ($)</label>
+                  <input type="number" {...form.register("estimatedRevenue")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                 </div>
               </div>
-
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Start Time</label>
+                  <input type="datetime-local" {...form.register("scheduledStart")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">End Time</label>
+                  <input type="datetime-local" {...form.register("scheduledEnd")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Address</label>
+                  <input {...form.register("address")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="123 Main St" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">City</label>
+                  <input {...form.register("city")} className="w-full px-4 py-2.5 rounded-xl bg-background border focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+              </div>
               <div className="pt-6 flex items-center justify-end gap-3 border-t">
-                <button type="button" onClick={() => setIsAdding(false)} className="px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary rounded-xl">
-                  Cancel
-                </button>
+                <button type="button" onClick={() => setIsAdding(false)} className="px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary rounded-xl">Cancel</button>
                 <button type="submit" disabled={isCreating} className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 shadow-sm disabled:opacity-50">
                   {isCreating ? "Scheduling..." : "Schedule Job"}
                 </button>
