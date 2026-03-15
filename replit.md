@@ -35,19 +35,27 @@ ServiceOS is a full-stack pnpm monorepo.
 - **Design Approach**: The application features a clean, responsive design with role-differentiated dashboards and navigation. Marketing pages are distinct from the application's authenticated sections.
 - **Branding**: The primary brand color is `#185FA5` blue.
 
-### Subscription Tiers
-- **Free** ($0): 3 users, core ops only (no GPS, no SMS, no analytics)
-- **Independent** ($79/mo, $59/mo annual): 6 users + GPS, manual SMS, referral network, basic financials
-- **Pro** ($199/mo, $149/mo annual): 25 users + AI SMS, full analytics, limited support
-- **Franchise** ($449/mo, $329/mo annual): 75 operators + landing pages, multi-location, priority support, custom API
-- **Enterprise**: 200+ operators, custom pricing
+### Subscription Tiers (3-tier model)
+- **Free** ($0/mo): 10 users hard cap, core operations only
+- **Pro** ($59/mo · $49/mo annual): 25 users included, +$1.99/mo per extra active user; AI automation, full analytics, add-ons available
+- **Enterprise** ($129/mo · $108/mo annual): 50 users/location, 3 locations included, +$1.29/mo per extra active user; all add-ons included, dedicated support, SLA
+
+User billing rules: inactive/paused/invited users are never billed. Seasonal pause supported on Pro+.
+
+### Add-ons (Pro tier, included in Enterprise)
+Standard: GPS Tracking ($14/mo), Landing Pages ($14/mo per page), SMS Campaigns ($14/mo), Live Chat ($19/mo), Background Checks ($9/check)
+Enterprise unlocks: Multi-Location ($49/mo/location), Custom Reports ($19/mo), White Label ($49/mo), Onboarding Session ($59 one-time)
 
 ### Pricing & Checkout
-- `/pricing` — Dedicated pricing page with billing toggle, 5 tier cards, feature comparison matrix, switching math, FAQ, founding accounts section, guarantee row
+- `/pricing` — 3-tier pricing page with billing toggle (monthly/annual), add-ons section, feature comparison table, FAQ
+- `/settings/add-ons` — Manage active add-ons with live toggle cards; pay-per-use modal for background checks and onboarding
 - `/checkout?tier=[tier]&billing=[monthly|annual]` — Stripe Elements checkout with FIRST30 coupon (50% off first invoice)
-- Stripe integration requires env vars: STRIPE_SECRET_KEY, VITE_STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_[TIER]_[BILLING], STRIPE_COUPON_FIRST30
-- Backend creates Stripe customer + subscription; tier upgrade only applies when subscription status is "active"
-- Demo page reads `?tier=` param to show interested-in context; `interestedIn` column in demo_requests table
+- Stripe env vars: STRIPE_PRICE_PRO_MONTHLY/ANNUAL, STRIPE_PRICE_ENTERPRISE_MONTHLY/ANNUAL, STRIPE_PRICE_ADDON_*, STRIPE_PRICE_USER_ADDON_PRO/ENT, STRIPE_PRICE_LOCATION_ADDON, STRIPE_COUPON_FIRST30
+
+### Feature Gating
+- `src/lib/permissions.ts` — 3-tier + addon permission system; `canAccess(feature, tier, addons?)`, `getUpgradeRequirement(feature)`, `ADDON_PRICES` registry
+- `ProtectedRoute` — Smart tier/addon-aware upgrade prompts; `UpgradeCard` component for inline gating
+- Mock auth profiles: free / pro / enterprise (independent and franchise removed)
 
 ### Structure
 

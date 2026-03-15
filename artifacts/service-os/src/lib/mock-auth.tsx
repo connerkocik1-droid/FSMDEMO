@@ -25,21 +25,9 @@ export const DEMO_PROFILES: DemoProfile[] = [
     avatar: "https://i.pravatar.cc/150?u=sam-rivera",
     role: "owner",
     tier: "free",
-    tagline: "Just getting started",
-    unlocked: ["Up to 3 users", "Core scheduling", "Basic invoicing", "Dashboard"],
-    locked: ["GPS tracking", "SMS hub", "Financials", "Analytics"],
-  },
-  {
-    id: "independent_owner",
-    name: "Taylor Brooks",
-    email: "taylor@brooksroofing.com",
-    company: "Brooks Roofing",
-    avatar: "https://i.pravatar.cc/150?u=taylor-brooks",
-    role: "owner",
-    tier: "independent",
-    tagline: "Solo operator growing fast",
-    unlocked: ["Up to 6 users", "Live GPS tracking", "Manual SMS", "Referral network", "Financials"],
-    locked: ["AI SMS workflows", "Full analytics", "Landing pages"],
+    tagline: "Getting started — 10 user cap",
+    unlocked: ["10 users included", "Core scheduling & dispatch", "Basic invoicing & quotes", "CRM & customer management"],
+    locked: ["AI SMS workflows", "Full analytics", "GPS tracking", "Add-ons"],
   },
   {
     id: "pro_owner",
@@ -49,21 +37,9 @@ export const DEMO_PROFILES: DemoProfile[] = [
     avatar: "https://i.pravatar.cc/150?u=jordan-lee",
     role: "owner",
     tier: "pro",
-    tagline: "Growing team, full visibility",
-    unlocked: ["Up to 25 users", "AI SMS workflows", "Full analytics", "Review automation", "Priority support"],
-    locked: ["Landing pages", "Multi-location routing", "Custom API"],
-  },
-  {
-    id: "franchise_owner",
-    name: "Casey Morgan",
-    email: "casey@morganlawn.net",
-    company: "Morgan Lawn Network",
-    avatar: "https://i.pravatar.cc/150?u=casey-morgan",
-    role: "owner",
-    tier: "franchise",
-    tagline: "Multi-location franchise",
-    unlocked: ["Up to 75 users", "Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"],
-    locked: [],
+    tagline: "Growing team, full automation",
+    unlocked: ["25 users included", "AI SMS & auto-responses", "Full analytics", "Recurring jobs", "Priority support"],
+    locked: ["Multi-location (add-on)", "White label (add-on)", "Custom API"],
   },
   {
     id: "enterprise_owner",
@@ -74,7 +50,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
     role: "owner",
     tier: "enterprise",
     tagline: "Enterprise-scale operations",
-    unlocked: ["Unlimited users", "Everything in Franchise", "Custom integrations", "Dedicated SLA", "White-glove onboarding"],
+    unlocked: ["50 users per location", "3 locations included", "All add-ons included free", "Custom API & integrations", "Dedicated account manager"],
     locked: [],
   },
   {
@@ -86,7 +62,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
     role: "operator",
     tier: "pro",
     tagline: "Field technician view",
-    unlocked: ["My job queue", "SMS check-in", "Job completion reports", "GPS check-in"],
+    unlocked: ["My job queue", "SMS check-in", "Job completion reports"],
     locked: ["Financials", "CRM & Leads", "Analytics", "Dispatch board"],
   },
 ];
@@ -263,7 +239,7 @@ export function MockUserButton() {
 export function RoleTierSwitcher() {
   const { role, tier, setRole, setTier } = useMockAuth();
   const roles: Role[] = ["owner", "admin", "manager", "operator"];
-  const tiers: Tier[] = ["free", "independent", "pro", "franchise", "enterprise"];
+  const tiers: Tier[] = ["free", "pro", "enterprise"];
 
   return (
     <div className="fixed bottom-4 right-4 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-2 text-xs">

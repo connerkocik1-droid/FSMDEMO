@@ -1,610 +1,515 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, Fragment } from "react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { SEO } from "@/components/SEO";
-import { trackPricingView } from "@/lib/analytics";
 import {
-  CheckCircle2,
-  ArrowRight,
-  ChevronLeft,
-  Shield,
-  Minus,
-  Check,
+  Check, Minus, Star, ArrowRight, ChevronDown, ChevronUp,
+  Zap, Building2, Gift, MapPin, FileBarChart2, Paintbrush,
+  MessageSquare, Radio, ShieldCheck, Calendar,
 } from "lucide-react";
 
-const TIERS = [
-  {
-    key: "free",
-    name: "Free",
-    monthly: 0,
-    annualMonthly: 0,
-    annualTotal: 0,
-    users: "Up to 3 users",
-    tagline: "Get started at zero cost",
-    features: [
-      "Core operations",
-      "Basic scheduling",
-      "Manual invoicing",
-    ],
-  },
-  {
-    key: "independent",
-    name: "Independent",
-    monthly: 39,
-    annualMonthly: 29,
-    annualTotal: 348,
-    promoMonthly: 19,
-    users: "Up to 6 users",
-    tagline: "For solo operators & small crews",
-    features: [
-      "Live GPS tracking",
-      "Manual SMS",
-      "Referral network access",
-      "Basic financials",
-    ],
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    monthly: 119,
-    annualMonthly: 89,
-    annualTotal: 1068,
-    promoMonthly: 59,
-    users: "Up to 25 users",
-    tagline: "Scale with AI-powered automation",
-    popular: true,
-    features: [
-      "AI SMS workflows",
-      "Full analytics",
-      "Automated reviews",
-      "Priority support",
-    ],
-  },
-  {
-    key: "franchise",
-    name: "Franchise",
-    monthly: 349,
-    annualMonthly: 249,
-    annualTotal: 2988,
-    promoMonthly: 149,
-    users: "Up to 75 users",
-    tagline: "Multi-location management",
-    features: [
-      "Landing page builder",
-      "Multi-location routing",
-      "Custom API access",
-      "Dedicated success manager",
-    ],
-  },
-  {
-    key: "enterprise",
-    name: "Enterprise",
-    monthly: null,
-    annualMonthly: null,
-    annualTotal: null,
-    users: "75+ users",
-    tagline: "Tailored for large operations",
-    features: [
-      "Everything in Franchise",
-      "Custom integrations",
-      "Dedicated success manager",
-      "Custom SLA & pricing",
-    ],
-  },
-];
+type Billing = "monthly" | "annual";
 
-const COMPARISON_CATEGORIES = [
-  {
-    category: "Operations",
-    features: [
-      { name: "Job management", free: true, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Basic scheduling", free: true, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Customer management", free: true, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Manual invoicing", free: true, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Automated invoicing", free: false, independent: false, pro: true, franchise: true, enterprise: true },
-    ],
-  },
-  {
-    category: "Communication",
-    features: [
-      { name: "Manual SMS", free: false, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "AI SMS workflows", free: false, independent: false, pro: true, franchise: true, enterprise: true },
-      { name: "Automated review requests", free: false, independent: false, pro: true, franchise: true, enterprise: true },
-    ],
-  },
-  {
-    category: "Tracking & Analytics",
-    features: [
-      { name: "Live GPS tracking", free: false, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Basic analytics", free: false, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Full analytics suite", free: false, independent: false, pro: true, franchise: true, enterprise: true },
-    ],
-  },
-  {
-    category: "Growth",
-    features: [
-      { name: "Referral network", free: false, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Landing page builder", free: false, independent: false, pro: false, franchise: true, enterprise: true },
-      { name: "Multi-location routing", free: false, independent: false, pro: false, franchise: true, enterprise: true },
-      { name: "Custom API access", free: false, independent: false, pro: false, franchise: true, enterprise: true },
-    ],
-  },
-  {
-    category: "Support",
-    features: [
-      { name: "Community support", free: true, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Email support", free: false, independent: true, pro: true, franchise: true, enterprise: true },
-      { name: "Priority support", free: false, independent: false, pro: true, franchise: true, enterprise: true },
-      { name: "Dedicated success manager", free: false, independent: false, pro: false, franchise: true, enterprise: true },
-      { name: "Custom SLA", free: false, independent: false, pro: false, franchise: false, enterprise: true },
-    ],
-  },
-];
-
-const FAQ_ITEMS = [
-  {
-    q: "Can I switch plans at any time?",
-    a: "Yes. You can upgrade or downgrade your plan at any time. When upgrading, you'll be prorated for the remainder of your billing cycle. When downgrading, the change takes effect at the end of your current period.",
-  },
-  {
-    q: "Are there per-user fees?",
-    a: "No. Every plan includes a set number of users with no additional per-seat charges. You only pay the flat monthly or annual price.",
-  },
-  {
-    q: "What payment methods do you accept?",
-    a: "We accept all major credit and debit cards (Visa, Mastercard, American Express, Discover) through our secure Stripe-powered checkout.",
-  },
-  {
-    q: "Is there a long-term contract?",
-    a: "No long-term contracts. Monthly plans are billed month-to-month and can be cancelled anytime. Annual plans are billed once per year with the option to cancel before renewal.",
-  },
-  {
-    q: "What happens when I exceed my user limit?",
-    a: "You'll receive a notification when you're approaching your limit. To add more users, simply upgrade to the next tier. No service interruption occurs.",
-  },
-  {
-    q: "Do you offer a free trial of paid plans?",
-    a: "We offer 50% off your first 3 months on all paid plans so you can try out the full feature set at a reduced cost.",
-  },
-  {
-    q: "Can I get a demo before subscribing?",
-    a: "Absolutely. Every paid tier includes a 'Book a demo' option so you can see the features in action before committing.",
-  },
-  {
-    q: "What's included in the Enterprise plan?",
-    a: "Enterprise includes everything in Franchise plus custom integrations, a dedicated success manager, custom SLA & pricing, and white-glove onboarding tailored to your organization.",
-  },
-];
-
-const SWITCHING_MATH = [
-  {
-    from: "Typical CRM",
-    cost: "$50–150/mo",
-    replaced: "Customer & lead management",
-  },
-  {
-    from: "Dispatch software",
-    cost: "$80–200/mo",
-    replaced: "Scheduling & GPS tracking",
-  },
-  {
-    from: "SMS platform",
-    cost: "$30–100/mo",
-    replaced: "AI-powered communications",
-  },
-  {
-    from: "Review tool",
-    cost: "$40–80/mo",
-    replaced: "Automated review generation",
-  },
-  {
-    from: "Analytics dashboard",
-    cost: "$30–60/mo",
-    replaced: "Full analytics suite",
-  },
-];
-
-const softwareAppSchema = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "ServiceOS",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  offers: [
-    {
-      "@type": "Offer",
-      name: "Free",
-      price: "0",
-      priceCurrency: "USD",
-    },
-    {
-      "@type": "Offer",
-      name: "Independent",
-      price: "39",
-      priceCurrency: "USD",
-      priceValidUntil: "2027-12-31",
-    },
-    {
-      "@type": "Offer",
-      name: "Pro",
-      price: "119",
-      priceCurrency: "USD",
-      priceValidUntil: "2027-12-31",
-    },
-    {
-      "@type": "Offer",
-      name: "Franchise",
-      price: "349",
-      priceCurrency: "USD",
-      priceValidUntil: "2027-12-31",
-    },
-  ],
+const PRICES = {
+  free:       { monthly: 0,   annual: 0 },
+  pro:        { monthly: 59,  annual: 49 },
+  enterprise: { monthly: 129, annual: 108 },
 };
 
+const ADDON_CARDS = [
+  { key: "gps",       icon: MapPin,       name: "GPS Tracking",       price: 14, unit: "/mo",         desc: "Live location tracking for every field tech" },
+  { key: "landing",   icon: Radio,        name: "Landing Pages",      price: 14, unit: "/mo per page", desc: "Convert search traffic with branded local pages" },
+  { key: "sms",       icon: MessageSquare,name: "SMS Campaigns",      price: 14, unit: "/mo",         desc: "Bulk outreach to your customer list" },
+  { key: "chat",      icon: MessageSquare,name: "Live Chat",          price: 19, unit: "/mo",         desc: "Real-time chat on your booking site" },
+  { key: "bgcheck",   icon: ShieldCheck,  name: "Background Checks",  price: 9,  unit: "/check",      desc: "Instant verified background checks for new hires" },
+];
+
+const ENTERPRISE_UNLOCKS = [
+  { key: "multi",    icon: Building2,     name: "Multi-Location",   price: 49,  unit: "/mo per location", desc: "Manage unlimited locations from one dashboard" },
+  { key: "reports",  icon: FileBarChart2, name: "Custom Reports",   price: 19,  unit: "/mo",              desc: "Build, save, and export any business report" },
+  { key: "wl",       icon: Paintbrush,    name: "White Label",      price: 49,  unit: "/mo",              desc: "Remove ServiceOS branding from client portals" },
+  { key: "onboard",  icon: Calendar,      name: "Onboarding Call",  price: 59,  unit: " one-time",        desc: "1-on-1 setup session with a ServiceOS specialist" },
+];
+
+type FeatureRow = { label: string; free: boolean | "addon"; pro: boolean | "addon"; ent: boolean | "addon" };
+const FEATURE_TABLE: { group: string; rows: FeatureRow[] }[] = [
+  {
+    group: "Core Operations",
+    rows: [
+      { label: "CRM & customer management",       free: true,    pro: true,    ent: true },
+      { label: "Job scheduling & dispatch",        free: true,    pro: true,    ent: true },
+      { label: "Invoicing & quotes",              free: true,    pro: true,    ent: true },
+      { label: "Digital signatures",              free: true,    pro: true,    ent: true },
+      { label: "Price book",                      free: true,    pro: true,    ent: true },
+      { label: "Job photos & notes",              free: true,    pro: true,    ent: true },
+      { label: "Ratings & reviews collection",    free: true,    pro: true,    ent: true },
+      { label: "Manual SMS",                      free: true,    pro: true,    ent: true },
+      { label: "Basic financials",                free: true,    pro: true,    ent: true },
+    ],
+  },
+  {
+    group: "Automation & AI",
+    rows: [
+      { label: "AI SMS dispatch & auto-response", free: false,   pro: true,    ent: true },
+      { label: "AI quote generation",             free: false,   pro: true,    ent: true },
+      { label: "Recurring jobs",                  free: false,   pro: true,    ent: true },
+      { label: "Automated follow-up sequences",   free: false,   pro: true,    ent: true },
+      { label: "Online booking widget",           free: false,   pro: true,    ent: true },
+      { label: "Unified inbox & team chat",       free: false,   pro: true,    ent: true },
+    ],
+  },
+  {
+    group: "Analytics & Finance",
+    rows: [
+      { label: "Basic analytics dashboard",       free: true,    pro: true,    ent: true },
+      { label: "Full analytics & reports",        free: false,   pro: true,    ent: true },
+      { label: "Job profitability tracking",      free: false,   pro: true,    ent: true },
+      { label: "Payroll export",                  free: false,   pro: true,    ent: true },
+      { label: "QuickBooks sync",                 free: false,   pro: true,    ent: true },
+      { label: "Progress invoicing",              free: false,   pro: true,    ent: true },
+      { label: "Custom reports",                  free: false,   pro: "addon", ent: true },
+    ],
+  },
+  {
+    group: "Team & Field",
+    rows: [
+      { label: "Time tracking",                   free: false,   pro: true,    ent: true },
+      { label: "Subcontractor management",        free: false,   pro: true,    ent: true },
+      { label: "Equipment tracking",              free: false,   pro: true,    ent: true },
+      { label: "GPS live tracking",               free: false,   pro: "addon", ent: true },
+      { label: "Background checks",               free: false,   pro: "addon", ent: true },
+    ],
+  },
+  {
+    group: "Growth & Marketing",
+    rows: [
+      { label: "Customer portal",                 free: false,   pro: true,    ent: true },
+      { label: "Referral network",                free: false,   pro: true,    ent: true },
+      { label: "Landing pages",                   free: false,   pro: "addon", ent: true },
+      { label: "SMS marketing campaigns",         free: false,   pro: "addon", ent: true },
+      { label: "Live chat widget",                free: false,   pro: "addon", ent: true },
+    ],
+  },
+  {
+    group: "Enterprise",
+    rows: [
+      { label: "Multi-location management",       free: false,   pro: "addon", ent: true },
+      { label: "Franchise & master dashboard",    free: false,   pro: false,   ent: true },
+      { label: "Custom API & integrations",       free: false,   pro: false,   ent: true },
+      { label: "White-label branding",            free: false,   pro: "addon", ent: true },
+      { label: "SLA guarantees",                  free: false,   pro: false,   ent: true },
+      { label: "Dedicated account manager",       free: false,   pro: false,   ent: true },
+    ],
+  },
+  {
+    group: "Support",
+    rows: [
+      { label: "Email support",                   free: false,   pro: true,    ent: true },
+      { label: "Priority support",                free: false,   pro: true,    ent: true },
+      { label: "Unlimited / dedicated support",   free: false,   pro: false,   ent: true },
+      { label: "Onboarding session",              free: false,   pro: "addon", ent: true },
+    ],
+  },
+  {
+    group: "Users & Locations",
+    rows: [
+      { label: "Included users",                  free: true,    pro: true,    ent: true },
+      { label: "User cap",                        free: true,    pro: false,   ent: false },
+      { label: "Additional active users",         free: false,   pro: true,    ent: true },
+      { label: "Seasonal pause (no billing)",     free: false,   pro: true,    ent: true },
+      { label: "Multiple locations",              free: false,   pro: "addon", ent: true },
+    ],
+  },
+];
+
+const FAQ = [
+  {
+    q: "Is there really no per-user fee?",
+    a: "Each plan includes a user allowance (10 for Free, 25 for Pro, 50 per location for Enterprise). Beyond that, only active users incur a small overage — Pro is $1.99/mo per extra active user, Enterprise is $1.29/mo. Inactive, seasonal-paused, and invited users never count toward billing.",
+  },
+  {
+    q: "What happens to seasonal workers?",
+    a: "Use the Seasonal Pause status to stop billing for workers who are off-season. Set a reactivation date and we automatically bring them back — no manual action needed. Only active users are ever billed.",
+  },
+  {
+    q: "Can I add features without upgrading my plan?",
+    a: "Yes — Pro subscribers can add GPS tracking, landing pages, SMS campaigns, live chat, custom reports, multi-location, and white-label branding as individual add-ons. You only pay for what you use.",
+  },
+  {
+    q: "What is included in Enterprise?",
+    a: "Enterprise starts at $129/month and includes 3 locations, 50 users per location, all add-ons at no extra charge, custom API access, custom integrations, a dedicated account manager, SLA guarantees, and unlimited support.",
+  },
+  {
+    q: "Can I cancel anytime?",
+    a: "Yes. Monthly subscriptions cancel at the end of the current billing period. Annual subscriptions can be cancelled but are non-refundable after the first 30 days. Add-ons can be removed anytime.",
+  },
+  {
+    q: "What is the 30-day discount?",
+    a: "New Pro and Enterprise subscribers get 50% off their first invoice — that's $29.50 for Pro or $64.50 for Enterprise (monthly billing). This is applied automatically at checkout with no code needed.",
+  },
+  {
+    q: "How does the location add-on work?",
+    a: "Pro subscribers can add locations at $49/month each. Enterprise plans include 3 locations, with additional locations at $49/month. Each location gets its own dashboard, user pool, and data isolation.",
+  },
+  {
+    q: "What is the difference between Pro and Enterprise?",
+    a: "Pro is built for single-location businesses with teams up to 25. Enterprise adds multi-location management, a franchise dashboard, custom API and integrations, all add-ons included, dedicated account management, and SLA guarantees.",
+  },
+];
+
+function FeatureCell({ val, col }: { val: boolean | "addon"; col: "free" | "pro" | "ent" }) {
+  if (val === true) return <Check className="w-5 h-5 text-green-500 mx-auto" />;
+  if (val === false) return <Minus className="w-4 h-4 text-muted-foreground/40 mx-auto" />;
+  return (
+    <span className={cn(
+      "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide mx-auto",
+      col === "ent" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+    )}>
+      {col === "ent" ? "✓" : "Add-on"}
+    </span>
+  );
+}
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b last:border-b-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between py-5 text-left gap-4 hover:text-primary transition-colors"
+      >
+        <span className="font-semibold text-foreground">{q}</span>
+        {open ? <ChevronUp className="w-5 h-5 shrink-0 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 shrink-0 text-muted-foreground" />}
+      </button>
+      {open && <p className="text-sm text-muted-foreground pb-5 leading-relaxed">{a}</p>}
+    </div>
+  );
+}
+
 export default function Pricing() {
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  useEffect(() => {
-    trackPricingView();
-  }, []);
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQ_ITEMS.map((item) => ({
-      "@type": "Question",
-      name: item.q,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: item.a,
-      },
-    })),
-  };
+  const [billing, setBilling] = useState<Billing>("monthly");
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/20">
+    <>
       <SEO
-        title="ServiceOS Pricing — Plans Starting at $0 | No Per-User Fees"
-        description="Simple, transparent pricing for field service businesses. Choose from Free, Independent, Pro, Franchise, or Enterprise plans. No per-user fees."
-        jsonLd={[softwareAppSchema, faqSchema]}
+        title="Pricing — ServiceOS"
+        description="Simple 3-tier pricing for field service businesses. Free forever, Pro from $59/mo, Enterprise from $129/mo. 50% off your first 30 days."
       />
-
-      <nav className="fixed top-0 inset-x-0 bg-background/80 backdrop-blur-md z-50 border-b">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-8 h-8 rounded-lg" />
-              <span className="font-display font-bold text-xl tracking-tight text-foreground">ServiceOS</span>
+      <div className="min-h-screen bg-background">
+        {/* Nav */}
+        <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <Link href="/">
+              <div className="flex items-center gap-2">
+                <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="ServiceOS" className="w-8 h-8 rounded-lg" />
+                <span className="font-bold text-lg">ServiceOS</span>
+              </div>
             </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm hover:shadow active:scale-95 text-sm">
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <section className="pt-32 pb-16 md:pt-44 md:pb-20">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground tracking-tight max-w-3xl mx-auto leading-tight">
-            Simple, transparent pricing
-          </h1>
-          <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
-            No per-user fees. No hidden charges. Pick the plan that fits your team.
-          </p>
-
-          <div className="inline-flex items-center mt-10 rounded-full border bg-card p-1 gap-1">
-            <button
-              onClick={() => setBilling("monthly")}
-              className={cn(
-                "px-6 py-2.5 rounded-full text-sm font-semibold transition-all",
-                billing === "monthly"
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBilling("annual")}
-              className={cn(
-                "px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2",
-                billing === "annual"
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Annual
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded-full font-bold",
-                billing === "annual"
-                  ? "bg-primary-foreground/20 text-primary-foreground"
-                  : "bg-green-100 text-green-700"
-              )}>
-                Save up to 27%
-              </span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="pb-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-5 gap-5">
-            {TIERS.map((tier) => {
-              const isCustom = tier.monthly === null;
-              const isFree = tier.monthly === 0;
-              const price = billing === "annual" ? tier.annualMonthly : tier.monthly;
-              const promoPrice = (tier as any).promoMonthly as number | undefined;
-
-              return (
-                <div
-                  key={tier.key}
-                  className={cn(
-                    "relative bg-card p-8 rounded-3xl border flex flex-col",
-                    tier.popular
-                      ? "border-primary shadow-xl shadow-primary/10 md:-translate-y-4"
-                      : "shadow-sm"
-                  )}
-                >
-                  {tier.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-full whitespace-nowrap">
-                      Most Popular
-                    </div>
-                  )}
-
-                  {!isFree && !isCustom && promoPrice && billing === "monthly" && (
-                    <div className="mb-3">
-                      <span className="inline-block text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
-                        ${promoPrice}/mo for first 3 months
-                      </span>
-                    </div>
-                  )}
-
-                  <h3 className="text-xl font-bold text-foreground">{tier.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{tier.tagline}</p>
-
-                  <div className="mt-4 mb-1">
-                    {isCustom ? (
-                      <span className="text-4xl font-display font-bold">Custom</span>
-                    ) : (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-display font-bold">${price}</span>
-                        <span className="text-muted-foreground">/mo</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {billing === "annual" && !isCustom && !isFree && (
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Billed as ${tier.annualTotal}/year
-                    </p>
-                  )}
-
-                  <p className="text-sm font-medium text-primary mt-2 mb-8">{tier.users}</p>
-
-                  <ul className="space-y-4 mb-8 flex-1">
-                    {tier.features.map((feat, j) => (
-                      <li key={j} className="flex items-start gap-3 text-sm text-muted-foreground">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {isFree ? (
-                    <Link
-                      href="/signup?tier=free"
-                      className="w-full py-3 rounded-xl font-semibold text-center transition-all bg-green-600 text-white hover:bg-green-700"
-                    >
-                      Start free — no card needed
-                    </Link>
-                  ) : isCustom ? (
-                    <div className="space-y-2">
-                      <Link
-                        href="/demo?tier=enterprise"
-                        className="w-full py-3 rounded-xl font-semibold text-center transition-all border-2 border-primary text-primary hover:bg-primary/5 block"
-                      >
-                        Contact Sales
-                      </Link>
-                      <Link
-                        href="/demo?tier=enterprise"
-                        className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors block"
-                      >
-                        or Book a demo first
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Link
-                        href={`/checkout?tier=${tier.key}&billing=${billing}`}
-                        className={cn(
-                          "w-full py-3 rounded-xl font-semibold text-center transition-all block",
-                          tier.popular
-                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        )}
-                      >
-                        Subscribe
-                      </Link>
-                      <Link
-                        href={`/demo?tier=${tier.key}`}
-                        className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors block"
-                      >
-                        or Book a demo first
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-secondary/30">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground text-center mb-12">
-            Feature comparison
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-4 px-4 font-semibold text-foreground sticky left-0 bg-secondary/30 z-10 min-w-[200px]">Feature</th>
-                  {TIERS.map((tier) => (
-                    <th key={tier.key} className={cn("py-4 px-4 text-center font-semibold text-sm", tier.popular ? "text-primary" : "text-foreground")}>
-                      {tier.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON_CATEGORIES.map((cat) => (
-                  <Fragment key={cat.category}>
-                    <tr>
-                      <td colSpan={6} className="pt-6 pb-2 px-4 font-bold text-foreground text-sm uppercase tracking-wider sticky left-0 bg-background z-10">
-                        {cat.category}
-                      </td>
-                    </tr>
-                    {cat.features.map((feat) => (
-                      <tr key={feat.name} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
-                        <td className="py-3 px-4 text-sm text-muted-foreground sticky left-0 bg-background z-10">{feat.name}</td>
-                        {(["free", "independent", "pro", "franchise", "enterprise"] as const).map((tierKey) => (
-                          <td key={tierKey} className="py-3 px-4 text-center">
-                            {feat[tierKey] ? (
-                              <Check className="w-5 h-5 text-green-600 mx-auto" />
-                            ) : (
-                              <Minus className="w-4 h-4 text-muted-foreground/40 mx-auto" />
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground text-center mb-4">
-            Replace 5 tools with one
-          </h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Most service businesses spend $230–590/month on separate tools. ServiceOS replaces them all starting at $0.
-          </p>
-          <div className="space-y-4">
-            {SWITCHING_MATH.map((item, i) => (
-              <div key={i} className="flex items-center gap-4 p-5 bg-card rounded-2xl border">
-                <div className="flex-1">
-                  <p className="font-semibold text-foreground">{item.from}</p>
-                  <p className="text-sm text-muted-foreground">{item.replaced}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-destructive line-through">{item.cost}</p>
-                  <p className="text-sm font-bold text-green-600">Included</p>
-                </div>
-              </div>
-            ))}
-            <div className="flex items-center gap-4 p-5 bg-primary/5 rounded-2xl border border-primary/20">
-              <div className="flex-1">
-                <p className="font-bold text-primary text-lg">ServiceOS Pro</p>
-                <p className="text-sm text-muted-foreground">All of the above and more</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-primary text-2xl">$119/mo</p>
-              </div>
+            <div className="flex items-center gap-3">
+              <Link href="/demo"><button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Book demo</button></Link>
+              <Link href="/dashboard"><button className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all">Sign in</button></Link>
             </div>
           </div>
-        </div>
-      </section>
+        </header>
 
-      <section className="py-20 bg-secondary/30">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground text-center mb-12">
-            Frequently asked questions
-          </h2>
-          <div className="space-y-3">
-            {FAQ_ITEMS.map((item, i) => (
-              <div key={i} className="bg-card rounded-2xl border overflow-hidden">
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-5 text-left"
-                >
-                  <span className="font-semibold text-foreground pr-4">{item.q}</span>
-                  <ChevronLeft
-                    className={cn(
-                      "w-5 h-5 text-muted-foreground shrink-0 transition-transform",
-                      openFaq === i ? "rotate-90" : "-rotate-90"
-                    )}
-                  />
-                </button>
-                {openFaq === i && (
-                  <div className="px-5 pb-5 text-muted-foreground leading-relaxed">
-                    {item.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="bg-gradient-to-r from-primary/10 to-blue-500/10 rounded-3xl p-12 border border-primary/20">
-            <h2 className="text-3xl font-display font-bold text-foreground mb-4">
-              Founding Accounts
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
-              Be one of the first 100 businesses to join ServiceOS. Founding accounts lock in current pricing forever, 
-              get priority feature requests, and direct access to the founding team.
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-24">
+          {/* Hero */}
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-semibold border border-green-200">
+              <Gift className="w-4 h-4" />
+              50% off your first 30 days — no code needed
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-display font-bold text-foreground tracking-tight">
+              Pricing built for field service
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              One flat monthly fee. No per-seat surprises. Inactive workers never count toward billing.
             </p>
-            <Link
-              href="/signup?tier=free"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/25"
-            >
-              Claim your founding account <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
 
-      <section className="py-16 border-t">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-            <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center shrink-0">
-              <Shield className="w-8 h-8 text-green-700" />
+            {/* Billing toggle */}
+            <div className="inline-flex items-center bg-secondary rounded-xl p-1 gap-1 mt-2">
+              <button
+                onClick={() => setBilling("monthly")}
+                className={cn("px-5 py-2 rounded-lg text-sm font-semibold transition-all", billing === "monthly" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground")}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBilling("annual")}
+                className={cn("px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2", billing === "annual" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground")}
+              >
+                Annual
+                <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">Save 17%</span>
+              </button>
             </div>
+          </div>
+
+          {/* Tier Cards */}
+          <div className="grid md:grid-cols-3 gap-6 -mt-4">
+            {/* Free */}
+            <div className="bg-card border rounded-3xl p-8 flex flex-col">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Free</p>
+                <div className="mt-3 flex items-end gap-1">
+                  <span className="text-5xl font-display font-bold text-foreground">$0</span>
+                  <span className="text-muted-foreground mb-1 pb-1">forever</span>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">Get your business onto a professional platform at no cost.</p>
+                <div className="my-6 h-px bg-border" />
+                <ul className="space-y-3">
+                  {[
+                    "10 users hard cap",
+                    "Core scheduling & dispatch",
+                    "CRM & customer management",
+                    "Invoicing, quotes & signatures",
+                    "Price book & job photos",
+                    "Basic financials & analytics",
+                    "Ratings & reviews collection",
+                  ].map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span className="text-foreground">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Link href="/checkout?tier=free" className="mt-8">
+                <button className="w-full py-3 rounded-xl border font-semibold text-foreground hover:bg-secondary transition-all">
+                  Start free — no card needed
+                </button>
+              </Link>
+            </div>
+
+            {/* Pro (featured) */}
+            <div className="bg-card border-2 border-primary rounded-3xl p-8 flex flex-col relative shadow-xl shadow-primary/10">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-bold shadow-md">
+                  <Star className="w-3 h-3 fill-current" /> Most Popular
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-primary uppercase tracking-widest">Pro</p>
+                <div className="mt-3 flex items-end gap-1">
+                  <span className="text-5xl font-display font-bold text-foreground">${PRICES.pro[billing]}</span>
+                  <span className="text-muted-foreground mb-1 pb-1">/mo{billing === "annual" ? " billed annually" : ""}</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold border border-green-200">
+                  <Gift className="w-3 h-3" />
+                  50% off first 30 days — ${(PRICES.pro[billing] * 0.5).toFixed(2)} today
+                </div>
+                <p className="text-muted-foreground text-sm mt-3">Everything your growing business needs, fully automated.</p>
+                <p className="text-xs text-muted-foreground mt-1.5 font-medium">25 users included · +$1.99/mo per extra active user · Inactive users never billed</p>
+                <div className="my-5 h-px bg-border" />
+                <ul className="space-y-3">
+                  {[
+                    "Everything in Free",
+                    "AI SMS dispatch & auto-response",
+                    "Recurring jobs & automation sequences",
+                    "Full analytics & job profitability",
+                    "Team chat & unified inbox",
+                    "QuickBooks sync & payroll export",
+                    "Customer portal & referral network",
+                    "Seasonal pause — inactive users free",
+                    "Priority & email support",
+                  ].map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span className="text-foreground">{f}</span>
+                    </li>
+                  ))}
+                  <li className="flex items-start gap-2.5 text-sm">
+                    <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">GPS, landing pages, SMS, live chat, reports available as add-ons</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="mt-8 space-y-3">
+                <Link href={`/checkout?tier=pro&billing=${billing}`}>
+                  <button className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+                    Subscribe — ${PRICES.pro[billing]}/mo
+                  </button>
+                </Link>
+                <Link href="/demo?tier=pro">
+                  <button className="w-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    or Book a demo first →
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Enterprise */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl p-8 flex flex-col text-white">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-violet-400 uppercase tracking-widest">Enterprise</p>
+                <div className="mt-3 flex items-end gap-1">
+                  <span className="text-5xl font-display font-bold text-white">${PRICES.enterprise[billing]}</span>
+                  <span className="text-slate-400 mb-1 pb-1">/mo starting{billing === "annual" ? " billed annually" : ""}</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs font-semibold border border-violet-500/30">
+                  <Gift className="w-3 h-3" />
+                  50% off first 30 days — ${(PRICES.enterprise[billing] * 0.5).toFixed(2)} today
+                </div>
+                <p className="text-slate-300 text-sm mt-3">Multi-location operations with all features included.</p>
+                <p className="text-xs text-slate-400 mt-1.5 font-medium">50 users per location · 3 locations included · +$1.29/mo per extra active user</p>
+                <div className="my-5 h-px bg-slate-700" />
+                <ul className="space-y-3">
+                  {[
+                    "Everything in Pro",
+                    "3 locations included (+$49/mo each after)",
+                    "All add-ons included free",
+                    "Franchise & master dashboard",
+                    "Custom API & integrations",
+                    "Dedicated account manager",
+                    "SLA guarantees",
+                    "Unlimited / dedicated support",
+                  ].map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                      <span className="text-slate-200">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-8 space-y-3">
+                <Link href={`/checkout?tier=enterprise&billing=${billing}`}>
+                  <button className="w-full py-3 rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-all">
+                    Subscribe — ${PRICES.enterprise[billing]}/mo
+                  </button>
+                </Link>
+                <Link href="/demo?tier=enterprise">
+                  <button className="w-full py-2 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">
+                    or Book a demo first →
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Add-ons Section */}
+          <section className="space-y-10">
+            <div className="text-center">
+              <h2 className="text-3xl font-display font-bold text-foreground">Enhance your plan with add-ons</h2>
+              <p className="text-muted-foreground mt-2 max-w-xl mx-auto">Available on Pro and Enterprise. Enterprise includes all add-ons free — no extra charge.</p>
+            </div>
+
             <div>
-              <h3 className="text-xl font-bold text-foreground mb-2">30-Day Money-Back Guarantee</h3>
-              <p className="text-muted-foreground">
-                Try any paid plan risk-free. If ServiceOS isn't the right fit within the first 30 days, we'll refund your payment — no questions asked.
-              </p>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4">Standard Add-ons</h3>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ADDON_CARDS.map(a => (
+                  <div key={a.key} className="bg-card border rounded-2xl p-5 hover:border-primary/40 hover:shadow-sm transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center">
+                        <a.icon className="w-5 h-5 text-foreground" />
+                      </div>
+                      <span className="text-lg font-bold text-foreground">${a.price}<span className="text-sm font-normal text-muted-foreground">{a.unit}</span></span>
+                    </div>
+                    <h4 className="font-semibold text-foreground">{a.name}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{a.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <footer className="bg-sidebar py-12 border-t border-sidebar-border">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-sidebar-foreground/60 text-sm">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-6 h-6 rounded grayscale" />
-            <span className="font-display font-semibold">ServiceOS © 2025</span>
-          </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-sidebar-foreground">Privacy</a>
-            <a href="#" className="hover:text-sidebar-foreground">Terms</a>
-            <a href="#" className="hover:text-sidebar-foreground">Contact</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-1">Enterprise Features — unlock without upgrading</h3>
+              <p className="text-xs text-muted-foreground mb-4">Pro subscribers can unlock these individually. Enterprise includes them all.</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {ENTERPRISE_UNLOCKS.map(a => (
+                  <div key={a.key} className="bg-gradient-to-br from-violet-50 to-violet-100/30 border border-violet-200 rounded-2xl p-5 hover:border-violet-400/50 hover:shadow-sm transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+                        <a.icon className="w-5 h-5 text-violet-600" />
+                      </div>
+                      <span className="text-base font-bold text-violet-800">${a.price}<span className="text-xs font-normal text-violet-500">{a.unit}</span></span>
+                    </div>
+                    <h4 className="font-semibold text-violet-900">{a.name}</h4>
+                    <p className="text-xs text-violet-600 mt-1">{a.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Feature Comparison Table */}
+          <section>
+            <h2 className="text-2xl font-display font-bold text-center text-foreground mb-8">Full feature comparison</h2>
+            <div className="overflow-x-auto rounded-2xl border bg-card">
+              <table className="w-full text-sm min-w-[540px]">
+                <thead>
+                  <tr className="border-b bg-secondary/50">
+                    <th className="text-left p-4 font-semibold text-foreground w-[55%]">Feature</th>
+                    <th className="text-center p-4 font-semibold text-foreground">Free</th>
+                    <th className="text-center p-4 font-semibold text-primary">Pro</th>
+                    <th className="text-center p-4 font-semibold text-violet-700">Enterprise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FEATURE_TABLE.map(({ group, rows }) => (
+                    <Fragment key={group}>
+                      <tr className="bg-secondary/30">
+                        <td colSpan={4} className="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">{group}</td>
+                      </tr>
+                      {rows.map(row => (
+                        <tr key={row.label} className="border-t hover:bg-secondary/20 transition-colors">
+                          <td className="p-4 text-foreground">{row.label}</td>
+                          <td className="p-4 text-center"><FeatureCell val={row.free} col="free" /></td>
+                          <td className="p-4 text-center"><FeatureCell val={row.pro} col="pro" /></td>
+                          <td className="p-4 text-center"><FeatureCell val={row.ent} col="ent" /></td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t bg-secondary/30">
+                    <td className="p-4 text-xs text-muted-foreground">Add-on = available on Pro or Enterprise as a paid add-on</td>
+                    <td className="p-4 text-center">
+                      <Link href="/checkout?tier=free"><button className="text-xs font-semibold underline">Start free</button></Link>
+                    </td>
+                    <td className="p-4 text-center">
+                      <Link href={`/checkout?tier=pro&billing=${billing}`}><button className="text-xs font-semibold text-primary underline">Get Pro</button></Link>
+                    </td>
+                    <td className="p-4 text-center">
+                      <Link href={`/checkout?tier=enterprise&billing=${billing}`}><button className="text-xs font-semibold text-violet-700 underline">Get Enterprise</button></Link>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section className="max-w-2xl mx-auto">
+            <h2 className="text-2xl font-display font-bold text-center text-foreground mb-8">Frequently asked questions</h2>
+            <div className="bg-card border rounded-2xl px-6">
+              {FAQ.map(item => <FaqItem key={item.q} {...item} />)}
+            </div>
+          </section>
+
+          {/* Bottom CTA */}
+          <section className="bg-gradient-to-br from-primary to-primary/80 rounded-3xl p-10 text-center text-white">
+            <h2 className="text-3xl font-display font-bold">Ready to run a better field service business?</h2>
+            <p className="text-white/80 mt-3 max-w-lg mx-auto">Start free with no credit card. Upgrade when your team grows. 50% off your first 30 days on Pro or Enterprise.</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <Link href="/checkout?tier=free">
+                <button className="px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:bg-white/90 transition-all shadow-lg">
+                  Start free today
+                </button>
+              </Link>
+              <Link href="/demo">
+                <button className="px-8 py-3.5 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition-all border border-white/30 flex items-center gap-2 justify-center">
+                  Book a demo <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </div>
+          </section>
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t mt-16 py-8 text-center text-sm text-muted-foreground">
+          <p>© 2026 ServiceOS · <Link href="/privacy"><span className="hover:underline">Privacy</span></Link> · <Link href="/pricing"><span className="hover:underline">Pricing</span></Link></p>
+        </footer>
+      </div>
+    </>
   );
 }

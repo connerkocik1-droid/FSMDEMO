@@ -17,6 +17,7 @@ export const companySettingsTable = pgTable("company_settings", {
     reviewAlerts: true,
     invoiceAlerts: true,
   }),
+  billingPeriod: text("billing_period").notNull().default("monthly"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

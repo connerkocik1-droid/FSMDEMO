@@ -176,8 +176,8 @@ export default function Dashboard() {
           {!canAccess("gps_tracking", tier) && (
             <UpgradePrompt feature="gps_tracking" title="GPS Crew Tracking" description="See where your crews are in real-time on a live map." />
           )}
-          {!canAccess("ai_sms_workflow", tier) && (
-            <UpgradePrompt feature="ai_sms_workflow" title="AI SMS Workflows" description="Automate customer communication with intelligent SMS." />
+          {!canAccess("ai_sms_dispatch", tier) && (
+            <UpgradePrompt feature="ai_sms_dispatch" title="AI SMS Workflows" description="Automate customer communication with intelligent SMS." />
           )}
         </div>
       </div>

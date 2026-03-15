@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { companiesTable } from "./companies";
@@ -14,6 +14,9 @@ export const usersTable = pgTable("users", {
   companyId: integer("company_id").references(() => companiesTable.id),
   isActive: boolean("is_active").notNull().default(true),
   isOnboarded: boolean("is_onboarded").notNull().default(false),
+  status: text("status").notNull().default("invited"),
+  pauseUntil: date("pause_until"),
+  deactivatedAt: timestamp("deactivated_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

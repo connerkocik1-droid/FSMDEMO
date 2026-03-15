@@ -39,6 +39,7 @@ import UsersDirectory from "@/pages/settings/users-directory";
 import UserProfile from "@/pages/settings/profile";
 import BillingPage from "@/pages/settings/billing";
 import AuditLogPage from "@/pages/settings/audit";
+import AddOnsSettings from "@/pages/settings/add-ons";
 import PublicReview from "@/pages/public-review";
 import IndustryPageRouter from "@/pages/industry";
 import CompareRoute from "@/pages/compare";
@@ -238,6 +239,12 @@ function AppRouter() {
                 </ProtectedRoute>
               </Route>
 
+              <Route path="/settings/add-ons">
+                <ProtectedRoute minRole="owner">
+                  <AddOnsSettings />
+                </ProtectedRoute>
+              </Route>
+
               <Route path="/settings/audit">
                 <ProtectedRoute minRole="admin">
                   <AuditLogPage />
@@ -257,7 +264,7 @@ function AppRouter() {
               </Route>
 
               <Route path="/settings/api-keys">
-                <ProtectedRoute requiredFeature="custom_api_access" minRole="owner">
+                <ProtectedRoute requiredFeature="custom_api" minRole="owner">
                   <ApiKeys />
                 </ProtectedRoute>
               </Route>

@@ -23,6 +23,7 @@ import {
   Building2,
   Sparkles,
   Receipt,
+  Puzzle,
 } from "lucide-react";
 import { useState } from "react";
 import { useMockAuth, MockUserButton } from "@/lib/mock-auth";
@@ -94,6 +95,7 @@ const navGroups: NavGroupDef[] = [
       { name: "Company", href: "/settings/company", icon: Building2, minRole: "admin" },
       { name: "Team", href: "/settings/users", icon: Users, minRole: "admin" },
       { name: "Billing", href: "/settings/billing", icon: CreditCard, minRole: "owner" },
+      { name: "Add-ons", href: "/settings/add-ons", icon: Puzzle, minRole: "owner" },
       { name: "Audit Log", href: "/settings/audit", icon: ClipboardList, minRole: "admin" },
     ]
   },
@@ -102,7 +104,7 @@ const navGroups: NavGroupDef[] = [
     items: [
       { name: "Landing Pages", href: "/settings/landing-pages", icon: Globe, feature: "landing_pages", minRole: "owner" },
       { name: "Locations", href: "/settings/locations", icon: Building, feature: "multi_location", minRole: "owner" },
-      { name: "API Keys", href: "/settings/api-keys", icon: Key, feature: "custom_api_access", minRole: "owner" },
+      { name: "API Keys", href: "/settings/api-keys", icon: Key, feature: "custom_api", minRole: "owner" },
     ]
   }
 ];

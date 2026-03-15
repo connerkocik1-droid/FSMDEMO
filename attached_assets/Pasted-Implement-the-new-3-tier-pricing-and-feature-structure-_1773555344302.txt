@@ -1,0 +1,378 @@
+Implement the new 3-tier pricing and feature structure for ServiceOS.
+This replaces ALL previous tier configurations. Apply every change below completely.
+
+
+═══════════════════════════════════════════════
+PART 1 — DATABASE SCHEMA UPDATES
+═══════════════════════════════════════════════
+
+
+1. Update companies table — change tier enum:
+   OLD: free | independent | pro | franchise | enterprise
+   NEW: free | pro | enterprise
+   Migration: map old 'independent' → 'free', old 'franchise' → 'enterprise'
+   Keep 'pro' and 'enterprise' as-is.
+
+
+2. Update users table — add/update status field:
+   status: enum('active', 'inactive', 'seasonal_pause', 'invited') DEFAULT 'invited'
+   Add: pause_until DATE NULL (for seasonal_pause status)
+   Add: deactivated_at TIMESTAMP NULL
+   Billing rule: only status = 'active' users count toward billing
+
+
+3. Create company_addons table:
+   id, company_id (fk), addon_type (enum below), stripe_subscription_item_id,
+   is_active (boolean), quantity (integer default 1),
+   activated_at, deactivated_at, created_at
+   addon_type enum: gps_tracking | landing_page | sms_marketing |
+     live_chat | background_check | custom_reports |
+     multi_location | white_label | onboarding_session
+
+
+4. Create addon_usage table (for pay-per-use add-ons):
+   id, company_id (fk), addon_type, quantity, unit_price,
+   description, stripe_invoice_item_id, created_at
+   Used for: background_check ($9/check), onboarding_session ($59 one-time)
+
+
+5. Update company_settings table — add:
+   billing_period: enum('monthly', 'annual') DEFAULT 'monthly'
+   stripe_customer_id, stripe_subscription_id (if not already present)
+
+
+═══════════════════════════════════════════════
+PART 2 — FEATURE GATE LOGIC
+═══════════════════════════════════════════════
+
+
+Update canAccess(feature, company) in AuthContext and server middleware.
+A feature is accessible if: the tier includes it natively OR
+the company has an active addon in company_addons for that feature.
+
+
+FREE TIER FEATURES (always available, no add-ons):
+  crm, scheduling, manual_sms, job_photos, quotes, invoices,
+  digital_signatures, price_book, ratings_reviews, basic_financials,
+  owner_role, operator_role
+
+
+PRO TIER FEATURES (Pro and Enterprise, no add-on needed):
+  ai_sms_dispatch, ai_quote_generation, operator_onboarding,
+  recurring_jobs, automated_sequences, booking_widget, ai_auto_response,
+  time_tracking, subcontractor_management, equipment_tracking,
+  job_profitability, payroll_export, progress_invoicing,
+  quickbooks_sync, full_analytics, unified_inbox, team_chat,
+  customer_portal, referral_network, admin_role, manager_role,
+  priority_support, email_support, single_location
+
+
+ENTERPRISE TIER FEATURES (Enterprise only, no add-on for Pro):
+  multi_location_native, franchise_dashboard, master_dashboard,
+  custom_api, custom_integrations, dedicated_account_manager,
+  sla_guarantees, unlimited_support, all_addons_included
+
+
+ADD-ON GATED FEATURES (Pro or Enterprise with active add-on):
+  gps_tracking → company_addons.addon_type = 'gps_tracking'
+  landing_pages → company_addons.addon_type = 'landing_page'
+  sms_marketing → company_addons.addon_type = 'sms_marketing'
+  live_chat → company_addons.addon_type = 'live_chat'
+  custom_reports → company_addons.addon_type = 'custom_reports'
+    (also included natively on Enterprise)
+  multi_location → company_addons.addon_type = 'multi_location'
+    (also included natively on Enterprise)
+  white_label → company_addons.addon_type = 'white_label'
+    (also included natively on Enterprise)
+
+
+canAccess() logic:
+  function canAccess(feature, company, userAddons) {
+    const tierFeatures = TIER_FEATURES[company.tier] // array above
+    if (tierFeatures.includes(feature)) return true
+    const addonFeatures = userAddons
+      .filter(a => a.is_active)
+      .map(a => ADDON_FEATURE_MAP[a.addon_type])
+    return addonFeatures.includes(feature)
+  }
+
+
+Enterprise gets all add-on features free:
+  If company.tier === 'enterprise', canAccess() returns true for ALL features.
+
+
+═══════════════════════════════════════════════
+PART 3 — INACTIVE USER BILLING
+═══════════════════════════════════════════════
+
+
+USER COUNT FUNCTION:
+  getActiveUserCount(company_id):
+    SELECT COUNT(*) FROM users
+    WHERE company_id = $1 AND status = 'active'
+  This is the ONLY count used for billing calculations.
+  Inactive, seasonal_pause, invited, deleted users are NEVER counted.
+
+
+SEASONAL PAUSE CRON (BullMQ, runs daily at 6am):
+  Query: SELECT id FROM users
+    WHERE status = 'seasonal_pause' AND pause_until <= CURRENT_DATE
+  For each result: UPDATE users SET status = 'active', pause_until = NULL
+  Log reactivations to audit_log.
+
+
+USER DIRECTORY (Settings > Users):
+  Add to each user row: status badge (Active/Inactive/Seasonal/Invited)
+  Add action buttons:
+    'Deactivate' → sets status = 'inactive', deactivated_at = now()
+    'Seasonal pause' → opens modal: set reactivation date → status = 'seasonal_pause'
+    'Reactivate' → sets status = 'active', clears pause_until
+  Show billing note: 'Inactive and seasonal users do not count toward your
+    user total. Only active users are billed.'
+  Show active user count vs included count in the header:
+    'X of 25 included users active · Y add-on users ($Z/mo)'
+
+
+═══════════════════════════════════════════════
+PART 4 — STRIPE BILLING IMPLEMENTATION
+═══════════════════════════════════════════════
+
+
+SUBSCRIPTION STRUCTURE (per company):
+  Each company has 1 Stripe subscription with multiple items:
+  Item 1: Base plan price (Pro monthly/annual or Enterprise monthly/annual)
+  Item 2: User add-on metered (Pro: $1.99/user, Ent: $1.29/user)
+  Item 3+: Each active add-on as a separate subscription item
+
+
+CHECKOUT FLOW (/checkout):
+  Read: tier (pro|enterprise), billing (monthly|annual)
+  Create Stripe Customer if not exists
+  Create Stripe Subscription with:
+    - Base plan price ID from env vars
+    - User metered price item (quantity = 0, reports monthly)
+    - Apply coupon STRIPE_COUPON_FIRST30 (50% off first invoice)
+  On success: update companies.tier, redirect to /dashboard?welcome=true
+
+
+ADD-ON ACTIVATION (Settings > Add-ons):
+  When user toggles an add-on ON:
+    POST /api/billing/addons/activate
+    Add subscription item to existing Stripe subscription
+    Create company_addons record: is_active = true
+    Return updated canAccess() state — feature unlocks immediately
+  When user toggles OFF:
+    Remove subscription item from Stripe (cancel at period end)
+    Set company_addons.is_active = false, deactivated_at = now()
+    Feature locks at end of current billing period
+
+
+BACKGROUND CHECK (pay-per-use):
+  POST /api/billing/addons/background-check
+  Create Stripe invoice item: $9.00
+  Create addon_usage record
+  Charge immediately via invoice.pay()
+
+
+ONBOARDING SESSION (one-time):
+  POST /api/billing/addons/onboarding
+  Create Stripe payment intent: $59.00
+  On success: create company_addons record (one-time, no recurring)
+  Schedule onboarding session in demo_bookings table
+
+
+MONTHLY USER BILLING CRON (runs on billing date):
+  For each Pro company: count = getActiveUserCount() - 25
+  For each Enterprise company: count = getActiveUserCount() - (50 × locations)
+  If count > 0: report usage to Stripe metered price item
+    stripe.subscriptionItems.createUsageRecord(itemId, { quantity: count })
+  If count <= 0: report 0 (no charge)
+
+
+ENTERPRISE LOCATION ADD-ON:
+  Pro users purchasing multi-location add-on: $49/mo per location added
+  Each location add-on = new subscription item at STRIPE_PRICE_ADDON_MULTI_LOCATION
+  Enterprise: locations 4+ = $49/mo each (STRIPE_PRICE_LOCATION_ADDON)
+
+
+═══════════════════════════════════════════════
+PART 5 — PRICING PAGE UPDATE
+═══════════════════════════════════════════════
+
+
+Update /pricing page completely. Remove all previous tier cards.
+
+
+BILLING TOGGLE: Monthly / Annual (annual saves ~17%)
+  Monthly: Free=$0, Pro=$59, Enterprise=$129
+  Annual: Free=$0, Pro=$49/mo ($588/yr), Enterprise=$108/mo ($1,296/yr)
+
+
+3 TIER CARDS:
+
+
+Free card:
+  Price: $0 forever. 10 users hard cap. No add-ons.
+  CTA: 'Start free — no card needed' → /signup?tier=free
+
+
+Pro card (featured — blue border, Most popular badge):
+  Price: $59/mo or $49/mo annual.
+  '50% off first 30 days — $29.50 today' badge.
+  25 users included. +$1.99/mo per additional active user.
+  Inactive users never count — highlight this prominently.
+  Single location. Add-ons available (link to add-ons section below).
+  CTAs: 'Subscribe — $59/mo' (blue) + 'or Book a demo first' (text link)
+  Subscribe → /checkout?tier=pro&billing=[monthly|annual]
+  Demo → /demo?tier=pro
+
+
+Enterprise card:
+  Price: Custom / $129/mo starting.
+  '50% off first 30 days — $64.50 today' badge.
+  50 users per location. +$1.29/mo per additional active user.
+  3 locations included. +$49/mo per location after 3.
+  All add-ons included free.
+  CTAs: 'Subscribe — $129/mo' (purple) + 'or Book a demo first' (text link)
+  Subscribe → /checkout?tier=enterprise&billing=[monthly|annual]
+  Demo → /demo?tier=enterprise
+
+
+ADD-ONS SECTION (below tier cards):
+  Heading: 'Enhance your plan with add-ons'
+  Subheading: 'Available on Pro and Enterprise. Enterprise includes all add-ons free.'
+  Show 5 standard add-on cards in a grid:
+    GPS tracking $14/mo, Landing page $14/mo per page,
+    SMS campaigns $14/mo, Live chat $19/mo, Background checks $9/check
+  Show 4 Enterprise unlock cards below for Pro users:
+    Multi-location $49/mo, Custom reports $19/mo,
+    White-label $49/mo, Onboarding $59 one-time
+
+
+FEATURE COMPARISON TABLE (below add-ons):
+  Full matrix with Free / Pro / Enterprise columns.
+  Add-on features show 'Add-on' badge instead of ✓ or –.
+  Mobile: horizontally scrollable.
+
+
+PRICING FAQ (8 Q&As with faqSchema()):
+  Q: Is there really no per-user fee?
+  Q: What happens to seasonal workers?
+  Q: Can I add features without upgrading my plan?
+  Q: What is included in Enterprise?
+  Q: Can I cancel anytime?
+  Q: What is the 30-day discount?
+  Q: How does the location add-on work?
+  Q: What is the difference between Pro and Enterprise?
+
+
+═══════════════════════════════════════════════
+PART 6 — SETTINGS > ADD-ONS PAGE
+═══════════════════════════════════════════════
+
+
+Build /settings/add-ons (Owner only).
+
+
+LAYOUT:
+  Page header: 'Add-ons & feature unlocks'
+  Subheader: 'Activate features your business needs. Cancel any add-on anytime.'
+  If Enterprise: show banner 'All add-ons are included in your Enterprise plan.'
+
+
+STANDARD ADD-ONS section:
+  5 cards in a grid. Each card shows:
+    - Add-on name and description
+    - Price/mo or per-use
+    - Toggle switch (on/off) — fires activate/deactivate API
+    - Current status badge (Active / Inactive)
+    - If active: shows date activated and next billing date
+
+
+ENTERPRISE UNLOCKS section (Pro accounts only):
+  4 cards. Same layout as standard add-ons.
+  Heading: 'Enterprise features — unlock without upgrading'
+  Background check: shows 'Use it' button instead of toggle.
+    Clicking opens confirmation modal showing $9 charge.
+  Onboarding session: shows 'Book now — $59' button.
+    One-time charge. Opens scheduling flow after payment.
+
+
+USAGE SUMMARY:
+  At bottom of page: current month add-on spend.
+  Table: add-on name, status, monthly cost, activated date.
+  Total: 'Current add-on spend: $X/mo'
+
+
+═══════════════════════════════════════════════
+PART 7 — UPGRADE PROMPTS
+═══════════════════════════════════════════════
+
+
+Every locked feature must show an upgrade prompt — never blank space.
+
+
+TIER UPGRADE PROMPTS (Free → Pro):
+  When Free user tries to access any Pro feature:
+  Show card: 'This feature requires ServiceOS Pro — $59/month'
+  Two buttons: 'Upgrade to Pro' → /pricing | 'Book a demo first' → /demo
+
+
+ADD-ON PROMPTS (Pro user, add-on not active):
+  When Pro user accesses GPS tracking (add-on off):
+  Show card: 'GPS tracking — $14/month add-on'
+  Button: 'Add GPS tracking' → /settings/add-ons#gps
+  Same pattern for every add-on feature.
+
+
+ENTERPRISE UNLOCK PROMPTS (Pro user, Enterprise feature):
+  When Pro user accesses multi-location:
+  Show card: 'Multi-location — $49/month per location'
+  Button: 'Unlock multi-location' → /settings/add-ons#multi-location
+  Alternative: 'Upgrade to Enterprise for all features' → /pricing
+
+
+USER CAP PROMPT (Free at 10 users):
+  When Free owner tries to invite an 11th user:
+  Modal: 'You have reached the 10-user limit on the Free plan.'
+  'ServiceOS Pro includes 25 users for $59/month — and inactive
+  users never count toward your limit.'
+  Button: 'Upgrade to Pro — $29.50 first month'
+
+
+═══════════════════════════════════════════════
+PART 8 — ENVIRONMENT VARIABLES TO ADD
+═══════════════════════════════════════════════
+
+
+Add all of these to .env and .env.example:
+
+
+STRIPE_PRICE_PRO_MONTHLY=
+STRIPE_PRICE_PRO_ANNUAL=
+STRIPE_PRICE_ENTERPRISE_MONTHLY=
+STRIPE_PRICE_ENTERPRISE_ANNUAL=
+STRIPE_PRICE_ADDON_GPS=
+STRIPE_PRICE_ADDON_LANDING_PAGE=
+STRIPE_PRICE_ADDON_SMS_MARKETING=
+STRIPE_PRICE_ADDON_LIVE_CHAT=
+STRIPE_PRICE_ADDON_CUSTOM_REPORTS=
+STRIPE_PRICE_ADDON_MULTI_LOCATION=
+STRIPE_PRICE_ADDON_WHITE_LABEL=
+STRIPE_PRICE_ADDON_BACKGROUND_CHECK=
+STRIPE_PRICE_ADDON_ONBOARDING=
+STRIPE_PRICE_USER_ADDON_PRO=
+STRIPE_PRICE_USER_ADDON_ENT=
+STRIPE_PRICE_LOCATION_ADDON=
+STRIPE_COUPON_FIRST30=
+
+
+After completing all 8 parts, verify:
+  1. Free account cannot access Pro features — sees upgrade prompt
+  2. Pro account with GPS add-on ON can see map view
+  3. Pro account with GPS add-on OFF sees add-on prompt
+  4. Deactivating a user removes them from active count immediately
+  5. Seasonal pause cron reactivates users on pause_until date
+  6. Stripe checkout creates subscription with FIRST30 coupon applied
+  7. Pricing page shows correct prices for monthly and annual toggle
+  8. Enterprise account has all add-ons active with no extra charge

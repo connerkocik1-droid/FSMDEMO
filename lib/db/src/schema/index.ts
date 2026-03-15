@@ -30,3 +30,5 @@ export * from "./live_demo_registrations";
 export * from "./tier_videos";
 export * from "./invoice_templates";
 export * from "./invoice_line_items";
+export * from "./company_addons";
+export * from "./addon_usage";
