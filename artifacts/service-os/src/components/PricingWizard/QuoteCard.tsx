@@ -150,6 +150,11 @@ export function QuoteCard({ quote, sessionId, onStartOver, initialAddonKeys = nu
                     <span className="text-sm font-bold text-foreground shrink-0 ml-2">${addon.price}<span className="text-xs font-normal text-muted-foreground">{addon.price_label}</span></span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{addon.reason}</p>
+                  {addon.triggered_by && (
+                    <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                      {addon.triggered_by}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

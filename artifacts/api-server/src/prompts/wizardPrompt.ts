@@ -23,7 +23,18 @@ Interpret the team size from the user's free-text answer to determine the number
 Recommend Free if ~1-10 people AND only basic ops needs (scheduling, invoicing, job status, reviews, time tracking).
 Recommend Pro if ~6-25 people OR any advanced need (GPS tracking, referrals, faster quoting, SMS/marketing).
 Recommend Enterprise if ~26+ people OR the user mentions multiple locations/offices.
-Suggest add-ons that match the user's described pain points (e.g. mentions GPS/tracking → gps_tracking, mentions texting/SMS/marketing → sms_marketing, mentions multiple locations → multi_location).
+Suggest add-ons that match the user's described pain points using this mapping:
+- no GPS visibility / can't track crews → gps_tracking
+- no texting / SMS / marketing → sms_marketing
+- multiple locations / offices → multi_location
+- outdated tech / need tech updates → gps_tracking
+- need referrals / word of mouth → landing_page
+- collecting reviews / reputation → sms_marketing or live_chat
+- slow quoting / estimates take too long → landing_page
+- tracking hours / time tracking → custom_reports
+- scheduling / dispatch headaches → onboarding_session
+- background checks / hiring safety → background_check
+For each suggested add-on, set the "reason" field to directly reference the user's specific pain point language (e.g. "You flagged slow quoting — Landing Page lets prospects self-book and approve estimates online"). Do NOT use generic marketing copy. Also set "triggered_by" to a short human-readable label of the pain point that triggered it (e.g. "Slow quoting", "No GPS visibility", "Tracking hours").
 If the user has already selected add-ons, include those in suggested_addons with default_on=true plus any additional relevant ones.
 Tier explanation: 2 sentences, industry-specific.
 Headline: punchy, include industry + savings figure vs competitor.
@@ -41,7 +52,8 @@ Return ONLY this JSON (no markdown, no preamble, no code fences):
       "price": number,
       "price_label": "string",
       "reason": "string",
-      "default_on": boolean
+      "default_on": boolean,
+      "triggered_by": "string"
     }
   ],
   "competitor_name": "string",
@@ -60,7 +72,17 @@ export const WIZARD_FALLBACK_QUOTE = {
   tier_explanation: "Pro is the right fit for most growing service businesses — AI dispatch, analytics, and referrals included.",
   monthly_base: 59,
   user_addon_cost: 0,
-  suggested_addons: [],
+  suggested_addons: [
+    {
+      name: "GPS Tracking",
+      addon_key: "gps_tracking",
+      price: 5,
+      price_label: "/mo",
+      reason: "Many growing teams need real-time crew visibility — GPS Tracking shows where every tech is, live.",
+      default_on: true,
+      triggered_by: "No GPS visibility",
+    },
+  ],
   competitor_name: "Jobber",
   competitor_monthly: 349,
   monthly_savings: 290,

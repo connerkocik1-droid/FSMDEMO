@@ -5,6 +5,7 @@ export interface SuggestedAddon {
   price_label: string;
   reason: string;
   default_on: boolean;
+  triggered_by?: string;
 }
 
 export interface QuoteResponse {
