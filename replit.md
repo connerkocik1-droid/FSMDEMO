@@ -176,10 +176,28 @@ All routes under `/api/*`:
 - **Pro+**: ai_sms_workflow, full_analytics, tech_support_limited
 - **Franchise+**: landing_pages, multi_location, tech_support_priority, custom_api_access
 
+## Marketing Pages & Components
+
+- **Shared Nav** (`components/marketing/MarketingNav.tsx`): Sticky nav with dropdowns for Features (7 pages), Industries (8 pages), Compare (7 pages) + Pricing/Blog links + "Book a Demo"/"Start Free" CTAs. Mobile hamburger menu.
+- **Shared Footer** (`components/marketing/MarketingFooter.tsx`): 4-column footer (Product, Industries, Compare, Company) + bottom row (copyright, privacy, terms links).
+- **Marketing Layout** (`components/marketing/MarketingLayout.tsx`): Wraps Nav + Footer around marketing page content.
+- **SEO Component** (`lib/seo.tsx`): Sets document title, meta description, canonical URL, and JSON-LD structured data. Includes `softwareAppSchema()` and `faqSchema()` helpers.
+- **Analytics** (`lib/analytics.ts`): GA4 event tracking helpers: `trackDemoRequest()`, `trackPricingView()`, `trackCTAClick()`, `trackFeatureClick()`.
+- **Feature Data** (`lib/feature-data.ts`): Centralized data for 7 feature detail pages (ai-dispatch, gps-tracking, invoicing, scheduling, referrals, crm, quotes) with SEO titles, benefits, steps, and FAQs.
+
+### Marketing Routes
+- `/` — Home page with 8 sections: hero, social proof bar, problem statement, feature highlights, switching math, industry fit row, testimonials, final CTA. SEO title: "Field Service Management Software | ServiceOS" with softwareAppSchema() JSON-LD.
+- `/features` — Features overview grid linking to all 7 detail pages.
+- `/features/:slug` — Feature detail pages with H1, benefits grid, how-it-works steps, 5 FAQs with faqSchema() JSON-LD, and CTA.
+- `/about` — Founder story, mission, differentiators, founding accounts.
+- `/privacy` — Privacy policy placeholder (indexed).
+- `/terms` — Terms of service placeholder (indexed).
+- `/demo` — Demo request form with SEO component and trackDemoRequest() GA4 event on submission.
+
 ## Pages Built (All 12 Steps Complete)
 
-1. `/` — Public landing page (hero, features grid, pricing, trust bar, CTA)
-2. `/demo` — Demo request (phone, date/time, 8 industries, 5 team sizes) + confirmation (slots, recorded demo, private demo)
+1. `/` — Marketing home page (hero, social proof, problem, features, switching math, industries, testimonials, CTA)
+2. `/demo` — Demo request (phone, date/time, 8 industries, 5 team sizes) + confirmation (slots, recorded demo, private demo) + SEO + GA4 tracking
 3. `/dashboard` — Role-differentiated (owner: 4 KPIs + jobs + activity; operator: 2 KPIs + my jobs); upgrade prompts for locked features
 4. `/leads` — Pipeline kanban (5 stages) + table view, lead detail panel, convert-to-customer flow
 5. `/customers` — Customer database with search, detail panel, ratings

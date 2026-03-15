@@ -36,10 +36,11 @@ export function trackEvent(
   }
 }
 
-export function trackDemoRequest(source?: string) {
+export function trackDemoRequest(data?: Record<string, string | number | boolean>) {
   trackEvent("demo_request", {
-    event_category: "engagement",
-    event_label: source || "unknown",
+    event_category: "conversion",
+    event_label: "demo_form_submission",
+    ...data,
   });
 }
 
@@ -50,13 +51,29 @@ export function trackSignup(method?: string) {
 }
 
 export function trackPricingView() {
-  trackEvent("view_pricing", {
+  trackEvent("pricing_view", {
     event_category: "engagement",
+    event_label: "pricing_section_scroll",
   });
 }
 
 export function trackComparisonView() {
   trackEvent("view_comparison", {
     event_category: "engagement",
+  });
+}
+
+export function trackFeatureClick(featureName: string) {
+  trackEvent("feature_click", {
+    event_category: "engagement",
+    feature_name: featureName,
+  });
+}
+
+export function trackCTAClick(ctaName: string, location: string) {
+  trackEvent("cta_click", {
+    event_category: "engagement",
+    cta_name: ctaName,
+    location,
   });
 }

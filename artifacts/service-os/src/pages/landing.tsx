@@ -1,289 +1,398 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
-import { ArrowRight, CheckCircle2, Star, Zap, BarChart3, Users, MessageSquare, MapPin, Shield, TrendingUp } from "lucide-react";
+import { SEO } from "@/components/SEO";
+import { softwareAppSchema } from "@/lib/seo";
+import { trackPricingView, trackCTAClick } from "@/lib/analytics";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Star,
+  Zap,
+  BarChart3,
+  Users,
+  MessageSquare,
+  MapPin,
+  Shield,
+  TrendingUp,
+  FileText,
+  Calendar,
+  DollarSign,
+} from "lucide-react";
+
+const SOCIAL_PROOF = [
+  { metric: "2,500+", label: "Service Businesses" },
+  { metric: "1.2M", label: "Jobs Dispatched" },
+  { metric: "4.8/5", label: "Average Rating" },
+  { metric: "30%", label: "Less Drive Time" },
+];
+
+const PROBLEMS = [
+  "Juggling 5+ tools just to manage your day",
+  "Losing leads because you can't respond fast enough",
+  "Spending hours on scheduling, invoicing, and follow-ups",
+  "No visibility into crew location or job status",
+];
+
+const FEATURE_HIGHLIGHTS = [
+  { title: "AI Dispatch", desc: "Auto-assign the right tech to every job based on skills, location, and availability.", icon: Zap, href: "/features/ai-dispatch" },
+  { title: "GPS Tracking", desc: "See your crews in real-time and give customers accurate ETAs.", icon: MapPin, href: "/features/gps-tracking" },
+  { title: "Smart Invoicing", desc: "Generate and send invoices from the field. Get paid on the spot.", icon: DollarSign, href: "/features/invoicing" },
+  { title: "Scheduling", desc: "Drag-and-drop calendar with conflict detection and customer self-booking.", icon: Calendar, href: "/features/scheduling" },
+  { title: "Referral Network", desc: "Exchange leads with local businesses and earn commissions.", icon: Users, href: "/features/referrals" },
+  { title: "CRM", desc: "Track every customer interaction from first contact to repeat business.", icon: MessageSquare, href: "/features/crm" },
+  { title: "Quotes & Estimates", desc: "Build and send professional quotes with digital signatures.", icon: FileText, href: "/features/quotes" },
+  { title: "Analytics", desc: "Deep insights into revenue, crew performance, and growth trends.", icon: BarChart3, href: "/features/ai-dispatch" },
+];
+
+const INDUSTRIES = [
+  { name: "HVAC", href: "/industries/hvac" },
+  { name: "Plumbing", href: "/industries/plumbing" },
+  { name: "Electrical", href: "/industries/electrical" },
+  { name: "Landscaping", href: "/industries/landscaping" },
+  { name: "Pest Control", href: "/industries/pest-control" },
+  { name: "Cleaning", href: "/industries/cleaning" },
+  { name: "Roofing", href: "/industries/roofing" },
+  { name: "Moving", href: "/industries/moving" },
+];
+
+const PLANS = [
+  { name: "Free", monthly: 0, annual: 0, users: "Up to 3 users", features: ["Core operations", "Basic scheduling", "Manual invoicing"] },
+  { name: "Independent", monthly: 39, introMonthly: 19, introNote: "1st month", annual: 299, users: "Up to 6 users", features: ["Live GPS tracking", "Manual SMS", "Referral network access"] },
+  { name: "Pro", monthly: 99, introMonthly: 49, introNote: "1st month", annual: 899, users: "Up to 25 users", features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"], popular: true },
+  { name: "Franchise", monthly: 349, introMonthly: 249, introNote: "1st 3 months", annual: 3199, users: "Up to 75 users", features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"] },
+  { name: "Enterprise", monthly: null, annual: null, users: "75+ users", features: ["Everything in Franchise", "Custom integrations", "Dedicated success manager", "Custom SLA & pricing"] },
+];
+
+const TESTIMONIALS = [
+  { name: "Mike R.", role: "Owner, FastFlow Plumbing", quote: "ServiceOS cut our scheduling time in half. The AI dispatch alone pays for the subscription.", rating: 5 },
+  { name: "Sarah T.", role: "Operations Manager, GreenScape", quote: "We went from 5 different tools to just ServiceOS. Our team actually enjoys using it.", rating: 5 },
+  { name: "David K.", role: "Founder, CoolBreeze HVAC", quote: "The referral network brought us 15 new customers last month without spending a dime on ads.", rating: 5 },
+];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/20">
-      {/* Navigation */}
-      <nav className="fixed top-0 inset-x-0 bg-background/80 backdrop-blur-md z-50 border-b">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-8 h-8 rounded-lg" />
-            <span className="font-display font-bold text-xl tracking-tight text-foreground">ServiceOS</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8 font-medium text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-            <Link href="/login?tab=demo" className="hover:text-foreground transition-colors">Request Demo</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm hover:shadow active:scale-95 text-sm">
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <MarketingLayout>
+      <SEO
+        title="Field Service Management Software"
+        description="All-in-one field service management software with AI dispatch, GPS tracking, invoicing, scheduling, CRM, and referral network. Start free today."
+        jsonLd={softwareAppSchema()}
+      />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <img 
-            src={`${import.meta.env.BASE_URL}images/hero-bg.png`} 
-            alt="Hero Background" 
-            className="w-full h-full object-cover opacity-10 dark:opacity-20 mix-blend-overlay"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background"></div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8 animate-in fade-in slide-in-from-bottom-4">
-            <SparklesIcon className="w-4 h-4" />
-            The Operating System for Modern Service Teams
-          </div>
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground tracking-tight max-w-4xl mx-auto leading-tight animate-in fade-in slide-in-from-bottom-6 delay-100">
-            Run your entire service business on autopilot.
-          </h1>
-          <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 delay-200">
-            From automated dispatch to AI-powered SMS communication, ServiceOS gives your team the tools to scale without the chaos.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 delay-300">
-            <Link 
-              href="/login?tab=demo" 
-              className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center"
-            >
-              Get a Demo <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link 
-              href="/login" 
-              className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
-            >
-              Log In
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section id="features" className="py-24 bg-secondary/30">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">Everything you need to grow</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Replace five different tools with one seamless platform.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { title: "Smart Dispatch", desc: "Drag-and-drop scheduling that automatically optimizes routes and alerts your crew via SMS.", icon: Zap },
-              { title: "AI Communications", desc: "Let our AI handle basic customer inquiries, appointment reminders, and follow-ups automatically.", icon: MessageSquare },
-              { title: "Review Generation", desc: "Automatically send review requests via text when a job is marked complete, boosting your online presence.", icon: Star },
-              { title: "Live GPS Tracking", desc: "See exactly where your crews are in real-time and provide accurate ETAs to waiting customers.", icon: MapPin },
-              { title: "Advanced Analytics", desc: "Deep insights into revenue, crew performance, and job completion rates to make better decisions.", icon: BarChart3 },
-              { title: "Referral Network", desc: "Connect with other local businesses to pass leads back and forth, earning commission automatically.", icon: Users },
-            ].map((feature, i) => (
-              <div key={i} className="bg-card p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <PricingSection />
-
-      {/* Footer */}
-      <footer className="bg-sidebar py-12 border-t border-sidebar-border">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-sidebar-foreground/60 text-sm">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-6 h-6 rounded grayscale" />
-            <span className="font-display font-semibold">ServiceOS © 2025</span>
-          </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-sidebar-foreground">Privacy</a>
-            <a href="#" className="hover:text-sidebar-foreground">Terms</a>
-            <a href="#" className="hover:text-sidebar-foreground">Contact</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <HeroSection />
+      <SocialProofBar />
+      <ProblemStatement />
+      <FeatureHighlights />
+      <SwitchingMath />
+      <IndustryFitRow />
+      <TestimonialsSection />
+      <FinalCTA />
+    </MarketingLayout>
   );
 }
 
-const PLANS = [
-  {
-    name: "Free",
-    monthly: 0,
-    annual: 0,
-    users: "Up to 3 users",
-    features: ["Core operations", "Basic scheduling", "Manual invoicing"],
-  },
-  {
-    name: "Independent",
-    monthly: 39,
-    introMonthly: 19,
-    introNote: "1st month",
-    annual: 299,
-    users: "Up to 6 users",
-    features: ["Live GPS tracking", "Manual SMS", "Referral network access"],
-  },
-  {
-    name: "Pro",
-    monthly: 99,
-    introMonthly: 49,
-    introNote: "1st month",
-    annual: 899,
-    users: "Up to 25 users",
-    features: ["AI SMS workflows", "Full analytics", "Automated reviews", "Priority support"],
-    popular: true,
-  },
-  {
-    name: "Franchise",
-    monthly: 349,
-    introMonthly: 249,
-    introNote: "1st 3 months",
-    annual: 3199,
-    users: "Up to 75 users",
-    features: ["Landing page builder", "Multi-location routing", "Custom API access", "Dedicated success manager"],
-  },
-  {
-    name: "Enterprise",
-    monthly: null,
-    annual: null,
-    users: "75+ users",
-    features: ["Everything in Franchise", "Custom integrations", "Dedicated success manager", "Custom SLA & pricing"],
-  },
-];
-
-function PricingSection() {
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-
+function HeroSection() {
   return (
-    <section id="pricing" className="py-24">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">Simple, transparent pricing</h2>
-          <p className="mt-4 text-lg text-muted-foreground">Choose the plan that fits your team size.</p>
+    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+      </div>
 
-          <div className="inline-flex items-center mt-8 rounded-full border bg-card p-1 gap-1">
-            <button
-              onClick={() => setBilling("monthly")}
-              className={cn(
-                "px-5 py-2 rounded-full text-sm font-semibold transition-all",
-                billing === "monthly"
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBilling("annual")}
-              className={cn(
-                "px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2",
-                billing === "annual"
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Annual
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded-full font-bold",
-                billing === "annual" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-green-100 text-green-700"
-              )}>
-                Save up to 25%
-              </span>
-            </button>
+      <div className="max-w-7xl mx-auto px-6 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8">
+          <SparklesIcon className="w-4 h-4" />
+          The Operating System for Modern Service Teams
+        </div>
+        <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground tracking-tight max-w-4xl mx-auto leading-tight">
+          Run your entire service business on autopilot.
+        </h1>
+        <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto">
+          From automated dispatch to AI-powered SMS communication, ServiceOS gives your team the tools to scale without the chaos.
+        </p>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/demo"
+            onClick={() => trackCTAClick("hero_demo", "hero")}
+            className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center"
+          >
+            Get a Demo <ArrowRight className="w-5 h-5" />
+          </Link>
+          <Link
+            href="/login"
+            className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 hover:shadow-md transition-all duration-200 w-full sm:w-auto justify-center flex"
+          >
+            Start Free
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SocialProofBar() {
+  return (
+    <section className="py-12 border-y bg-secondary/30">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          {SOCIAL_PROOF.map((item) => (
+            <div key={item.label}>
+              <div className="text-3xl md:text-4xl font-display font-bold text-foreground">{item.metric}</div>
+              <div className="text-sm text-muted-foreground mt-1">{item.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProblemStatement() {
+  return (
+    <section className="py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            Sound familiar?
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Most field service businesses waste hours every day on tasks that should be automated.
+          </p>
+          <div className="mt-10 space-y-4 text-left max-w-xl mx-auto">
+            {PROBLEMS.map((problem) => (
+              <div key={problem} className="flex items-start gap-4 p-4 rounded-xl bg-destructive/5 border border-destructive/10">
+                <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-destructive text-sm font-bold">!</span>
+                </div>
+                <span className="text-foreground">{problem}</span>
+              </div>
+            ))}
           </div>
+          <p className="mt-8 text-lg font-semibold text-primary">
+            ServiceOS replaces all of that with one platform.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeatureHighlights() {
+  return (
+    <section className="py-24 bg-secondary/30">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            Everything you need to grow
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Replace five different tools with one seamless platform.
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-5 gap-5">
-          {PLANS.map((plan, i) => {
-            const isCustom = plan.monthly === null;
-            const isFree = plan.monthly === 0;
-            const price = billing === "annual" && !isCustom && !isFree ? plan.annual : plan.monthly;
-            const showIntro = billing === "monthly" && plan.introMonthly !== undefined;
-
-            return (
-              <div key={i} className={cn(
-                "relative bg-card p-8 rounded-3xl border flex flex-col",
-                plan.popular ? "border-primary shadow-xl shadow-primary/10 md:-translate-y-4" : "shadow-sm"
-              )}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-full whitespace-nowrap">
-                    Most Popular
-                  </div>
-                )}
-
-                <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-
-                <div className="mt-4 mb-1">
-                  {isCustom ? (
-                    <span className="text-4xl font-display font-bold">Custom</span>
-                  ) : isFree ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-display font-bold">$0</span>
-                      <span className="text-muted-foreground">/mo</span>
-                    </div>
-                  ) : billing === "annual" ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-display font-bold">${price}</span>
-                      <span className="text-muted-foreground">/yr</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-display font-bold">${price}</span>
-                      <span className="text-muted-foreground">/mo</span>
-                    </div>
-                  )}
-                </div>
-
-                {showIntro && (
-                  <div className="mb-1">
-                    <span className="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
-                      {plan.introNote} only ${plan.introMonthly}
-                    </span>
-                  </div>
-                )}
-
-                {billing === "annual" && !isCustom && !isFree && (
-                  <div className="mb-1">
-                    <span className="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
-                      Saves ${(plan.monthly! * 12) - plan.annual!}/yr vs monthly
-                    </span>
-                  </div>
-                )}
-
-                <p className="text-sm font-medium text-primary mt-2 mb-8">{plan.users}</p>
-
-                <ul className="space-y-4 mb-8 flex-1">
-                  {plan.features.map((feat, j) => (
-                    <li key={j} className="flex items-start gap-3 text-sm text-muted-foreground">
-                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                      {feat}
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/login?tab=demo"
-                  className={cn(
-                    "w-full py-3 rounded-xl font-semibold text-center transition-all",
-                    plan.popular
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  )}
-                >
-                  {isCustom ? "Contact Sales" : "Get Started"}
-                </Link>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {FEATURE_HIGHLIGHTS.map((feature) => (
+            <Link
+              key={feature.title}
+              href={feature.href}
+              className="bg-card p-6 rounded-2xl border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group"
+            >
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                <feature.icon className="w-6 h-6 text-primary" />
               </div>
-            );
-          })}
+              <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                {feature.title}
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+            </Link>
+          ))}
+        </div>
+
+        <div className="text-center mt-10">
+          <Link href="/features" className="inline-flex items-center gap-2 text-primary font-semibold hover:gap-3 transition-all">
+            View all features <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SwitchingMath() {
+  const ref = useRef<HTMLDivElement>(null);
+  const tracked = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !tracked.current) {
+          tracked.current = true;
+          trackPricingView();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section ref={ref} className="py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            The math is simple
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Stop paying for tools that don't talk to each other.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="bg-destructive/5 border border-destructive/10 rounded-2xl p-8">
+            <h3 className="text-lg font-bold text-foreground mb-4">Without ServiceOS</h3>
+            <div className="space-y-3 text-sm">
+              {[
+                { tool: "Scheduling tool", price: "$49/mo" },
+                { tool: "GPS tracking", price: "$30/mo" },
+                { tool: "Invoicing software", price: "$45/mo" },
+                { tool: "CRM", price: "$65/mo" },
+                { tool: "Review management", price: "$40/mo" },
+              ].map((item) => (
+                <div key={item.tool} className="flex justify-between text-muted-foreground">
+                  <span>{item.tool}</span>
+                  <span>{item.price}</span>
+                </div>
+              ))}
+              <div className="border-t pt-3 flex justify-between font-bold text-foreground">
+                <span>Total</span>
+                <span className="text-destructive">$229/mo</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 ring-2 ring-primary/10">
+            <h3 className="text-lg font-bold text-foreground mb-4">With ServiceOS Pro</h3>
+            <div className="space-y-3 text-sm">
+              {[
+                "AI Dispatch & Scheduling",
+                "Live GPS Tracking",
+                "Invoicing & Payments",
+                "Full CRM",
+                "Automated Reviews",
+                "Referral Network",
+                "SMS Communications",
+                "Analytics Dashboard",
+              ].map((feat) => (
+                <div key={feat} className="flex items-center gap-2 text-muted-foreground">
+                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                  <span>{feat}</span>
+                </div>
+              ))}
+              <div className="border-t pt-3 flex justify-between font-bold text-foreground">
+                <span>Total</span>
+                <span className="text-primary">$99/mo</span>
+              </div>
+            </div>
+            <div className="mt-4 text-center">
+              <span className="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                Save $130/mo — that's $1,560/year
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IndustryFitRow() {
+  return (
+    <section className="py-24 bg-secondary/30">
+      <div className="max-w-7xl mx-auto px-6 text-center">
+        <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+          Built for every trade
+        </h2>
+        <p className="mt-4 text-lg text-muted-foreground mb-12">
+          ServiceOS adapts to your industry with specialized workflows and templates.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          {INDUSTRIES.map((industry) => (
+            <Link
+              key={industry.name}
+              href={industry.href}
+              className="px-5 py-2.5 rounded-full border bg-card text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
+            >
+              {industry.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TestimonialsSection() {
+  return (
+    <section className="py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            Trusted by service pros
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            See what business owners are saying about ServiceOS.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {TESTIMONIALS.map((t) => (
+            <div key={t.name} className="bg-card p-8 rounded-2xl border shadow-sm">
+              <div className="flex gap-1 mb-4">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-foreground leading-relaxed mb-6">"{t.quote}"</p>
+              <div>
+                <p className="font-bold text-foreground">{t.name}</p>
+                <p className="text-sm text-muted-foreground">{t.role}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FinalCTA() {
+  return (
+    <section className="py-24 bg-primary/5">
+      <div className="max-w-3xl mx-auto px-6 text-center">
+        <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+          Ready to run your business on autopilot?
+        </h2>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Join 2,500+ service businesses already using ServiceOS. Start free — no credit card required.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/login"
+            onClick={() => trackCTAClick("final_start_free", "final_cta")}
+            className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 transition-all flex items-center gap-2"
+          >
+            Start Free Today <ArrowRight className="w-5 h-5" />
+          </Link>
+          <Link
+            href="/demo"
+            onClick={() => trackCTAClick("final_demo", "final_cta")}
+            className="px-8 py-4 rounded-xl bg-secondary text-secondary-foreground font-semibold text-lg hover:bg-secondary/80 transition-all"
+          >
+            Book a Demo
+          </Link>
         </div>
       </div>
     </section>

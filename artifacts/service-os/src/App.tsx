@@ -10,6 +10,11 @@ import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import Demo from "@/pages/demo";
 import DemoAccess from "@/pages/demo-access";
+import FeaturesOverview from "@/pages/features/index";
+import FeatureDetail from "@/pages/features/[slug]";
+import About from "@/pages/about";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
 import Dashboard from "@/pages/dashboard";
 import Leads from "@/pages/leads";
 import Customers from "@/pages/customers";
@@ -66,6 +71,11 @@ function AppRouter() {
 
       <Route path="/demo" component={Demo} />
       <Route path="/demo-access/:token" component={DemoAccess} />
+      <Route path="/features" component={FeaturesOverview} />
+      <Route path="/features/:slug" component={FeatureDetail} />
+      <Route path="/about" component={About} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/review/:token" component={PublicReview} />
       
       <Route path="/:rest*">

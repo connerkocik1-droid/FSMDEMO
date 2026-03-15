@@ -6,6 +6,8 @@ import { Link } from "wouter";
 import { useSubmitDemoRequest, useGetDemoSlots } from "@workspace/api-client-react";
 import { Calendar, CheckCircle2, ChevronLeft, Video, Clock, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { SEO } from "@/components/SEO";
+import { trackDemoRequest } from "@/lib/analytics";
 
 const demoSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -37,7 +39,10 @@ export default function Demo() {
     submitDemo(
       { data: { ...data, wantsRecorded: false, wantsPrivate: false } },
       {
-        onSuccess: () => setStep(2),
+        onSuccess: () => {
+          trackDemoRequest({ businessType: data.businessType, teamSize: data.teamSize });
+          setStep(2);
+        },
       }
     );
   };
@@ -51,6 +56,10 @@ export default function Demo() {
 
   return (
     <div className="min-h-screen bg-secondary/30 flex flex-col">
+      <SEO
+        title="Book a Demo | Field Service Management"
+        description="Schedule a personalized demo of ServiceOS. See AI dispatch, GPS tracking, invoicing, and more in action for your field service business."
+      />
       <header className="px-8 py-6">
         <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors">
           <ChevronLeft className="w-4 h-4" /> Back to Home
