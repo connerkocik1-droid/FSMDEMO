@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
-import { demoSlotsTable, demoHostsTable, demoBookingsTable, demoRequestsTable, demoAccessTokensTable, liveDemoSessionsTable, tierVideoUrlsTable } from "@workspace/db/schema";
+import { demoSlotsTable, demoHostsTable, demoBookingsTable, demoRequestsTable, demoAccessTokensTable, liveDemoSessionsTable, tierVideosTable } from "@workspace/db/schema";
 import { eq, sql, count, desc } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -237,7 +237,7 @@ router.get("/demo/accounts", requireDevAdmin, async (_req: DevAdminRequest, res:
 router.get("/demo/live-sessions", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
   try {
     const sessions = await db.select().from(liveDemoSessionsTable)
-      .orderBy(liveDemoSessionsTable.scheduledAt);
+      .orderBy(liveDemoSessionsTable.datetime);
     return res.json({ sessions });
   } catch (err) {
     console.error(err);
@@ -247,15 +247,14 @@ router.get("/demo/live-sessions", requireDevAdmin, async (_req: DevAdminRequest,
 
 router.post("/demo/live-sessions", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
   try {
-    const { title, description, scheduledAt, durationMin, meetingLink, hostName, maxRegistrants } = req.body;
+    const { title, description, datetime, durationMin, externalMeetingLink, maxRegistrations } = req.body;
     const [session] = await db.insert(liveDemoSessionsTable).values({
       title,
       description,
-      scheduledAt: new Date(scheduledAt),
-      durationMin: durationMin || 60,
-      meetingLink,
-      hostName,
-      maxRegistrants,
+      datetime: new Date(datetime),
+      durationMin: durationMin || 45,
+      externalMeetingLink,
+      maxRegistrations,
     }).returning();
     return res.status(201).json(session);
   } catch (err) {
@@ -267,16 +266,14 @@ router.post("/demo/live-sessions", requireDevAdmin, async (req: DevAdminRequest,
 router.patch("/demo/live-sessions/:id", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { title, description, scheduledAt, durationMin, meetingLink, hostName, maxRegistrants, isActive } = req.body;
+    const { title, description, datetime, durationMin, externalMeetingLink, maxRegistrations } = req.body;
     const updateData: any = { updatedAt: new Date() };
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (scheduledAt !== undefined) updateData.scheduledAt = new Date(scheduledAt);
+    if (datetime !== undefined) updateData.datetime = new Date(datetime);
     if (durationMin !== undefined) updateData.durationMin = durationMin;
-    if (meetingLink !== undefined) updateData.meetingLink = meetingLink;
-    if (hostName !== undefined) updateData.hostName = hostName;
-    if (maxRegistrants !== undefined) updateData.maxRegistrants = maxRegistrants;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (externalMeetingLink !== undefined) updateData.externalMeetingLink = externalMeetingLink;
+    if (maxRegistrations !== undefined) updateData.maxRegistrations = maxRegistrations;
 
     const [updated] = await db.update(liveDemoSessionsTable)
       .set(updateData)
@@ -304,7 +301,7 @@ router.delete("/demo/live-sessions/:id", requireDevAdmin, async (req: DevAdminRe
 
 router.get("/demo/tier-videos", requireDevAdmin, async (_req: DevAdminRequest, res: Response) => {
   try {
-    const videos = await db.select().from(tierVideoUrlsTable).orderBy(tierVideoUrlsTable.tier);
+    const videos = await db.select().from(tierVideosTable).orderBy(tierVideosTable.tierName);
     return res.json({ videos });
   } catch (err) {
     console.error(err);
@@ -315,18 +312,18 @@ router.get("/demo/tier-videos", requireDevAdmin, async (_req: DevAdminRequest, r
 router.put("/demo/tier-videos/:tier", requireDevAdmin, async (req: DevAdminRequest, res: Response) => {
   try {
     const { tier } = req.params;
-    const { videoUrl, title, description } = req.body;
+    const { videoUrl, description } = req.body;
 
-    const existing = await db.select().from(tierVideoUrlsTable).where(eq(tierVideoUrlsTable.tier, tier)).limit(1);
+    const existing = await db.select().from(tierVideosTable).where(eq(tierVideosTable.tierName, tier)).limit(1);
     let result;
     if (existing.length > 0) {
-      [result] = await db.update(tierVideoUrlsTable)
-        .set({ videoUrl, title, description, updatedAt: new Date() })
-        .where(eq(tierVideoUrlsTable.tier, tier))
+      [result] = await db.update(tierVideosTable)
+        .set({ videoUrl, description, updatedAt: new Date() })
+        .where(eq(tierVideosTable.tierName, tier))
         .returning();
     } else {
-      [result] = await db.insert(tierVideoUrlsTable)
-        .values({ tier, videoUrl, title, description })
+      [result] = await db.insert(tierVideosTable)
+        .values({ tierName: tier, videoUrl, description })
         .returning();
     }
     return res.json(result);

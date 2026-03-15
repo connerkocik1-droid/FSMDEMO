@@ -71,7 +71,7 @@ ServiceOS is a full-stack pnpm monorepo.
 - **Financials**: Revenue tracking, invoice management with status lifecycle.
 - **Reviews**: Dashboard for managing customer ratings and testimonials.
 - **Referrals**: Network management, marketplace, and tracking.
-- **Analytics**: Comprehensive dashboards with various metric cards, charts, and lead funnel visualization.
+- **Analytics**: Comprehensive dashboards with various metric cards, charts, and lead funnel visualization. Includes an **Insights** page (`/analytics/insights`, gated to `full_analytics` feature + `admin+` role) with AI-style cards for revenue trends, overdue invoices, job counts, top services, lead conversion rate, and customer satisfaction.
 - **Settings**: Extensive settings for company profile, branding, regional preferences, user management, billing, and audit logs. Franchise+ tiers include landing page builders, multi-location management, and API key management.
 - **Marketing Site**: Dedicated marketing pages, blog, demo request flow, and robust SEO infrastructure including dynamic sitemaps, SEO components, and GA4 integration.
 - **Demo Page (redesigned)**: `/demo` has two sections — Upcoming Live Demos (DB-backed group webinar sessions with free inline registration) and Video Demos by Tier (5 plan cards with YouTube/Vimeo embed support). Existing private demo form preserved as secondary "Prefer a private demo?" CTA at bottom. Dev-admin Scheduling page has management UI for live sessions and tier video URLs.
@@ -81,7 +81,7 @@ ServiceOS is a full-stack pnpm monorepo.
 - **API Design**: RESTful API routes clearly structured by resource (`/api/leads`, `/api/jobs`, etc.).
 - **Authorization**: A robust permission matrix (`canAccessFeature`, `hasPermission`, `isAtLeastRole`) governs access to features and functionality based on user role and subscription tier. `ProtectedRoute` components enforce these rules.
 - **Data Schemas**: Zod for runtime validation of API requests and responses.
-- **Database Schema**: 27 tables covering all entities from companies and users to jobs, invoices, leads, marketing content, live demo sessions, and tier video URLs.
+- **Database Schema**: 29 tables covering all entities from companies and users to jobs, invoices, leads, marketing content, live demo sessions, tier videos, and live demo registrations. Schema fully synced: `live_demo_sessions` uses `datetime`/`external_meeting_link`/`max_registrations`; `tier_videos` stores per-tier video URLs; `live_demo_registrations` stores webinar sign-ups.
 - **SEO**: Comprehensive SEO strategy including `react-helmet-async` for meta tags, JSON-LD schema helpers, sitemap generation, robots.txt, and GA4 integration.
 
 ## External Dependencies

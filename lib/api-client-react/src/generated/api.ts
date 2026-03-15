@@ -3744,6 +3744,55 @@ export function useGetJobAnalytics<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export type InsightItem = {
+  id: string;
+  type: "positive" | "negative" | "warning" | "neutral";
+  category: string;
+  title: string;
+  description: string;
+  value: string;
+  trend: string;
+  action: string;
+  actionPath: string;
+};
+
+export type AnalyticsInsights = {
+  insights: InsightItem[];
+  generatedAt: string;
+};
+
+export const getAnalyticsInsights = async (options?: RequestInit): Promise<AnalyticsInsights> => {
+  return customFetch<AnalyticsInsights>("/api/analytics/insights", { ...options, method: "GET" });
+};
+
+export const getGetAnalyticsInsightsQueryKey = () => ["/api/analytics/insights"] as const;
+
+export const getGetAnalyticsInsightsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyticsInsights>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsInsights>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetAnalyticsInsightsQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsInsights>>> = ({ signal }) =>
+    getAnalyticsInsights({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsInsights>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useGetAnalyticsInsights<
+  TData = Awaited<ReturnType<typeof getAnalyticsInsights>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsInsights>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsInsightsQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export const markInvoiceSent = (invoiceId: number, options?: SecondParameter<typeof customFetch>) => {
   return customFetch<Invoice>({ url: `/api/invoices/${invoiceId}/send`, method: "PATCH" }, options);
 };

@@ -55,16 +55,15 @@ export default function DevAdminScheduling() {
   const [saved, setSaved] = useState(false);
 
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
-  const [sessionForm, setSessionForm] = useState({ title: "", description: "", scheduledAt: "", durationMin: 60, meetingLink: "", hostName: "" });
+  const [sessionForm, setSessionForm] = useState({ title: "", description: "", datetime: "", durationMin: 45, externalMeetingLink: "" });
   const [editingSession, setEditingSession] = useState<number | null>(null);
   const [sessionSaving, setSessionSaving] = useState(false);
   const [showSessionForm, setShowSessionForm] = useState(false);
 
-  const TIERS = ["free", "independent", "pro", "franchise", "enterprise"];
-  const TIER_LABELS: Record<string, string> = { free: "Free", independent: "Independent", pro: "Pro", franchise: "Franchise", enterprise: "Enterprise" };
-  const [tierVideos, setTierVideos] = useState<Record<string, { videoUrl: string; title: string; description: string }>>({});
+  const TIERS = ["Free", "Independent", "Pro", "Franchise", "Enterprise"];
+  const [tierVideos, setTierVideos] = useState<Record<string, { videoUrl: string; description: string }>>({});
   const [editingTier, setEditingTier] = useState<string | null>(null);
-  const [tierVideoForm, setTierVideoForm] = useState({ videoUrl: "", title: "", description: "" });
+  const [tierVideoForm, setTierVideoForm] = useState({ videoUrl: "", description: "" });
 
   useEffect(() => {
     devAdminFetch("/demo/settings")
@@ -97,7 +96,7 @@ export default function DevAdminScheduling() {
       .then(r => r.json())
       .then(data => {
         const map: Record<string, any> = {};
-        (data.videos || []).forEach((v: any) => { map[v.tier] = { videoUrl: v.videoUrl || "", title: v.title || "", description: v.description || "" }; });
+        (data.videos || []).forEach((v: any) => { map[v.tierName] = { videoUrl: v.videoUrl || "", description: v.description || "" }; });
         setTierVideos(map);
       })
       .catch(console.error);
@@ -117,7 +116,7 @@ export default function DevAdminScheduling() {
       }
       setShowSessionForm(false);
       setEditingSession(null);
-      setSessionForm({ title: "", description: "", scheduledAt: "", durationMin: 60, meetingLink: "", hostName: "" });
+      setSessionForm({ title: "", description: "", datetime: "", durationMin: 45, externalMeetingLink: "" });
     } catch (err) { console.error(err); }
     setSessionSaving(false);
   };
@@ -133,10 +132,9 @@ export default function DevAdminScheduling() {
     setSessionForm({
       title: session.title,
       description: session.description || "",
-      scheduledAt: session.scheduledAt ? new Date(session.scheduledAt).toISOString().slice(0, 16) : "",
+      datetime: session.datetime ? new Date(session.datetime).toISOString().slice(0, 16) : "",
       durationMin: session.durationMin,
-      meetingLink: session.meetingLink || "",
-      hostName: session.hostName || "",
+      externalMeetingLink: session.externalMeetingLink || "",
     });
     setShowSessionForm(true);
   };
@@ -460,7 +458,7 @@ export default function DevAdminScheduling() {
             <Calendar className="w-4 h-4 text-blue-600" /> Live Demo Sessions
           </h3>
           <button
-            onClick={() => { setEditingSession(null); setSessionForm({ title: "", description: "", scheduledAt: "", durationMin: 60, meetingLink: "", hostName: "" }); setShowSessionForm(true); }}
+            onClick={() => { setEditingSession(null); setSessionForm({ title: "", description: "", datetime: "", durationMin: 45, externalMeetingLink: "" }); setShowSessionForm(true); }}
             className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-500 text-sm"
           >
             <Plus className="w-4 h-4" /> Add Session
@@ -481,7 +479,7 @@ export default function DevAdminScheduling() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Date & Time (UTC)</label>
-                <input type="datetime-local" value={sessionForm.scheduledAt} onChange={e => setSessionForm(p => ({ ...p, scheduledAt: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
+                <input type="datetime-local" value={sessionForm.datetime} onChange={e => setSessionForm(p => ({ ...p, datetime: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Duration (min)</label>
@@ -492,13 +490,9 @@ export default function DevAdminScheduling() {
                   <option value={90}>90 min</option>
                 </select>
               </div>
-              <div className="space-y-1">
+              <div className="col-span-2 space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Meeting Link (Zoom/Meet)</label>
-                <input value={sessionForm.meetingLink} onChange={e => setSessionForm(p => ({ ...p, meetingLink: e.target.value }))} placeholder="https://zoom.us/j/..." className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Host Name</label>
-                <input value={sessionForm.hostName} onChange={e => setSessionForm(p => ({ ...p, hostName: e.target.value }))} placeholder="Jordan Lee" className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
+                <input value={sessionForm.externalMeetingLink} onChange={e => setSessionForm(p => ({ ...p, externalMeetingLink: e.target.value }))} placeholder="https://zoom.us/j/..." className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
               </div>
             </div>
             <div className="flex items-center gap-3 pt-2">
@@ -521,16 +515,15 @@ export default function DevAdminScheduling() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm text-foreground">{session.title}</p>
-                    {new Date(session.scheduledAt) < new Date() && (
+                    {new Date(session.datetime) < new Date() && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Past</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(session.scheduledAt), "PPP 'at' p")} · {session.durationMin} min
-                    {session.hostName && ` · Hosted by ${session.hostName}`}
+                    {format(new Date(session.datetime), "PPP 'at' p")} · {session.durationMin} min
                   </p>
-                  {session.meetingLink && (
-                    <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                  {session.externalMeetingLink && (
+                    <a href={session.externalMeetingLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
                       <ExternalLink className="w-3 h-3" /> Meeting link
                     </a>
                   )}
@@ -562,14 +555,10 @@ export default function DevAdminScheduling() {
               <div key={tier} className="p-4 bg-secondary/30 rounded-xl border">
                 {isEditing ? (
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">{TIER_LABELS[tier]}</p>
+                    <p className="text-sm font-semibold text-foreground">{tier}</p>
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Video Embed URL (YouTube/Vimeo embed URL)</label>
                       <input value={tierVideoForm.videoUrl} onChange={e => setTierVideoForm(p => ({ ...p, videoUrl: e.target.value }))} placeholder="https://www.youtube.com/embed/..." className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Card Title</label>
-                      <input value={tierVideoForm.title} onChange={e => setTierVideoForm(p => ({ ...p, title: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-background border text-sm" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Card Description</label>
@@ -583,7 +572,7 @@ export default function DevAdminScheduling() {
                 ) : (
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{TIER_LABELS[tier]}</p>
+                      <p className="text-sm font-semibold text-foreground">{tier}</p>
                       {video?.videoUrl ? (
                         <p className="text-xs text-green-600 mt-0.5 flex items-center gap-1.5">
                           <CheckCircle className="w-3 h-3" /> Video URL set
@@ -593,7 +582,7 @@ export default function DevAdminScheduling() {
                       )}
                     </div>
                     <button
-                      onClick={() => { setEditingTier(tier); setTierVideoForm({ videoUrl: video?.videoUrl || "", title: video?.title || "", description: video?.description || "" }); }}
+                      onClick={() => { setEditingTier(tier); setTierVideoForm({ videoUrl: video?.videoUrl || "", description: video?.description || "" }); }}
                       className="p-2 text-muted-foreground hover:text-blue-600 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-4 h-4" />

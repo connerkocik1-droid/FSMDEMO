@@ -28,6 +28,7 @@ import Financials from "@/pages/financials";
 import Reviews from "@/pages/reviews";
 import Referrals from "@/pages/referrals";
 import Analytics from "@/pages/analytics";
+import Insights from "@/pages/insights";
 import GPS from "@/pages/gps";
 import LandingPages from "@/pages/settings/landing-pages";
 import Locations from "@/pages/settings/locations";
@@ -190,6 +191,12 @@ function AppRouter() {
               <Route path="/analytics">
                 <ProtectedRoute requiredFeature="full_analytics" minRole="admin">
                   <Analytics />
+                </ProtectedRoute>
+              </Route>
+
+              <Route path="/insights">
+                <ProtectedRoute requiredFeature="full_analytics" minRole="admin">
+                  <Insights />
                 </ProtectedRoute>
               </Route>
 
